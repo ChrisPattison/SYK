@@ -1,0 +1,27 @@
+Bootstrap: localimage
+From: ./base.sif
+
+%runscript
+syk
+#source /python/bin/activate
+#${SCRIPT_PATH}/syk.py "$@"
+
+%files
+./src /src
+
+%environment
+export SCRIPT_PATH=/src
+export PATH=${PATH}:${SCRIPT_PATH}/build
+export PYTHON_PATH=${PYTHON_PATH}:${SCRIPT_PATH}/build
+
+%labels
+
+%post
+cd /src
+rm -rf build
+mkdir build
+cd build
+
+cmake .. -DCMAKE_BUILD_TYPE=Debug
+make -j$(nproc)
+make install
