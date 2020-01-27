@@ -5,5 +5,5 @@ set logscale y
 set logscale x
 set xtic auto
 set ytic auto
-plot "out.dat" using 1:2
+plot for [n=2:*] "out.dat" using 1:n
 

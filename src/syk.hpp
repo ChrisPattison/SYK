@@ -120,7 +120,7 @@ MatrixType syk_hamiltonian(rng_type* rng, int N, double J) {
     MatrixType hamiltonian = MatrixType::Zero(hilbert_space_size, hilbert_space_size);
     auto repp = FermionRep(N);
 
-    auto distr = std::normal_distribution<double>(0, J/N);
+    auto distr = std::normal_distribution<double>(0, J/std::pow(static_cast<double>(N), 1.5));
 
     for(int i = 0; i < N; ++i) {
         for(int j = 0; j < i; ++j) {
