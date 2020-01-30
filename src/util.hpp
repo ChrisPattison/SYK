@@ -30,3 +30,13 @@ std::vector<double> sample_unit_simplex(rng_type* rand_gen, int dim) {
     assert(std::abs(std::accumulate(vals.begin(), vals.end(), 0.0) - 1.0) < 1e-7);
     return vals;
 }
+
+template<typename rng_type>
+std::vector<double> sample_biased_simplex(rng_type* rand_gen, int dim, double size) {
+    auto simplex = sample_unit_simplex(rand_gen, dim);
+    std::transform(simplex.begin()+1, simplex.end(), simplex.begin(), [&](const auto& v) { return v * size; });
+    assert(size < 1.0);
+    auto norm = std::accumulate(simplex.begin(), simplex.end(), 0.0);
+    std::transform(simplex.begin(), simplex.end(), simplex.begin(), [&](const auto& v) { return v / norm; });
+    return simplex;
+}
