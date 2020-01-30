@@ -29,13 +29,13 @@ MatrixType RandomRealIidGauss(rng_type* rand_gen, int n, int m) {
 
 template<typename rng_type>
 MatrixType RandomGOE(rng_type* rand_gen, int n) {
-    auto A = RandomRealIidGauss(rand_gen, n, n);
+    MatrixType A = RandomRealIidGauss(rand_gen, n, n);
     return (A + A.transpose()) / 2;
 }
 
 template<typename rng_type>
 MatrixType RandomGUE(rng_type* rand_gen, int n) {
-    auto A = RandomRealIidGauss(rand_gen, n, n) + 1.0i * RandomRealIidGauss(rand_gen, n, n);
+    MatrixType A = RandomRealIidGauss(rand_gen, n, n) + 1.0i * RandomRealIidGauss(rand_gen, n, n);
     return (A + A.adjoint()) / 2;
 }
 }
