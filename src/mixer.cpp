@@ -89,14 +89,19 @@ int main(int argc, char* argv[]) {
     auto data_path = fs::path("data");
     fs::create_directory(data_path);
     
-    // std::vector<int> system_sizes {6, 10, 14, 18};
-    std::vector<int> system_sizes {6, 8, 10, 12, 14, 16, 18};
+    std::vector<int> unique_system_sizes {6, 10, 14, 18};
+    // std::vector<int> unique_system_sizes {18};
     int avg_count = 1000;
-    int num_hamiltonians = 10;
-    auto re_time = logspace(1e5, 1e7-1.0, 100000);
+    int trial_count = 1;
+    int num_hamiltonians = 2;
+    // auto re_time = logspace(1e5, 1e7-1.0, 100000);
+    auto re_time = logspace(10.0, 1e7-1.0, 100000);
 
+    std::vector<int> system_sizes(unique_system_sizes.size()*trial_count);
+    for(int k = 0; k < unique_system_sizes.size(); ++k) {
+        std::fill(system_sizes.begin() + k * trial_count, system_sizes.begin() + (k+1) * trial_count, unique_system_sizes[k]);
+    }
     auto rng = std::mt19937_64(std::random_device()());
-
     std::vector<std::vector<double>> spectral(system_sizes.size());
     
     // Spectral form factors
@@ -105,7 +110,8 @@ int main(int argc, char* argv[]) {
 
         spectral[system_size_i] = sample_form_factor(
             re_time, 
-            [&]() { return syk::RandomGUE(&rng, 1<<(N/2)); }, 
+            // [&]() { return syk::RandomGUE(&rng, 1<<(N/2)); }, 
+            [&]() { return syk::syk_hamiltonian(&rng, N, 1); },
             [&]() { return sample_biased_simplex(&rng, num_hamiltonians, 0.1); },
             avg_count);
     }

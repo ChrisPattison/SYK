@@ -11,7 +11,8 @@ export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=cpp
 %labels
 
 %post
-dnf install -y cmake git g++ wget gdb
+dnf install -y cmake git g++ wget
+dnf install -y gdb valgrind
 dnf install -y make bzip2 autoconf automake libtool curl make unzip
 dnf install -y python3 python3-devel
 dnf install -y eigen3-devel
