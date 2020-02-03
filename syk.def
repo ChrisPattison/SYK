@@ -18,10 +18,14 @@ export PYTHON_PATH=${PYTHON_PATH}:${SCRIPT_PATH}/build
 
 %post
 cd /src
-rm -rf build
+
+
+#rm -rf build
 mkdir build
 cd build
 
-cmake .. -DCMAKE_BUILD_TYPE=Release
-make -j$(nproc)
-make install
+PREFIX=
+
+${PREFIX} cmake3 .. -DCMAKE_BUILD_TYPE=Release -DEIGEN3_INCLUDE_DIR=/base/eigen3
+${PREFIX} make VERBOSE=1 -j$(nproc)
+${PREFIX} make install

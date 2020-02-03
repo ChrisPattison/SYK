@@ -4,6 +4,9 @@
 #include <cmath>
 #include <random>
 #include <cassert>
+#include <functional>
+
+namespace util {
 
 template<typename T>
 std::vector<T> logspace(T a, T b, int N) {
@@ -39,4 +42,32 @@ std::vector<double> sample_biased_simplex(rng_type* rand_gen, int dim, double si
     auto norm = std::accumulate(simplex.begin(), simplex.end(), 0.0);
     std::transform(simplex.begin(), simplex.end(), simplex.begin(), [&](const auto& v) { return v / norm; });
     return simplex;
+}
+
+template<class InputIt, class T, class BinaryOp, class UnaryOp>
+T transform_reduce(InputIt first, InputIt last, T init, BinaryOp binop, UnaryOp unary_op) {
+    T result = init;
+    for(; first != last; ++first) {
+        result = binop(result, unary_op(*first));
+    }
+    return result;
+}
+
+
+template <class InputIt1, class InputIt2, class T, class BinaryOp1, class BinaryOp2>
+T transform_reduce(InputIt1 first1, InputIt1 last1, InputIt2 first2, T init, BinaryOp1 binary_op1, BinaryOp2 binary_op2) {
+    T result = init;
+    while(first1 != last1) {
+        result = binary_op1(result, binary_op2(*first1, *first2));
+
+        ++first1;
+        ++first2;
+    }
+    return result;
+}
+
+template<class InputIt1, class InputIt2, class T>
+T transform_reduce(InputIt1 first1, InputIt1 last1, InputIt2 first2, T init) {
+    return transform_reduce(first1, last1, first2, init, std::plus<>(), std::multiplies<>());
+}
 }

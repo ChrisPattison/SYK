@@ -6,7 +6,7 @@
 #include <random>
 #include <cmath>
 
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 #include "syk_types.hpp"
 
 // https://web.eecs.umich.edu/~rajnrao/Acta05rmt.pdf

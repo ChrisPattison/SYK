@@ -9,10 +9,11 @@
 
 // #define EIGEN_USE_LAPACKE_STRICT
 
-#include <eigen3/Eigen/Dense>
-#include <eigen3/unsupported/Eigen/KroneckerProduct>
-#include <eigen3/Eigen/Eigenvalues>
+#include <Eigen/Dense>
+#include <unsupported/Eigen/KroneckerProduct>
+#include <Eigen/Eigenvalues>
 #include "syk_types.hpp"
+#include "util.hpp"
 
 
 namespace syk {
@@ -152,7 +153,7 @@ std::vector<std::complex<double> > hamiltonian_eigenvals(const MatrixType& hamil
 
 auto spectral_form_factor(const std::vector<std::complex<double>>& eigenvals) {
     return [=](std::complex<double> beta) -> double {
-        auto z_part = std::transform_reduce(eigenvals.cbegin(), eigenvals.cend(), 0.0i,
+        auto z_part = util::transform_reduce(eigenvals.cbegin(), eigenvals.cend(), 0.0i,
             std::plus<>(), [=](auto a) { return std::exp(a * beta); });
         return std::real(z_part * std::conj(z_part));
     };

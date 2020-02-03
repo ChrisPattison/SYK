@@ -1,36 +1,46 @@
 Bootstrap: docker
-From: fedora:31
+From: centos:8
 
 %runscript
 
 %files
 
 %environment
-export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=cpp
+export CUDADIR=/usr/local/cuda-10.2
+export PATH="${CUDADIR}/bin:$PATH"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${CUDADIR}/lib64"
 
 %labels
 
 %post
-dnf install -y cmake git g++ wget
+#dnf install -y centos-release-scl
+#dnf install -y devtoolset-9
+
+dnf install -y gcc-c++
+dnf install -y epel-release
+dnf install -y cmake3 git wget bc
 dnf install -y gdb valgrind
 dnf install -y make bzip2 autoconf automake libtool curl make unzip
 dnf install -y python3 python3-devel
-dnf install -y eigen3-devel
+#dnf install -y eigen-devel
 
-# Protobuf build
-PROTOBUF_VER=3.10.1
-wget https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VER}/protobuf-cpp-${PROTOBUF_VER}.tar.gz
-tar -xzf protobuf-cpp-${PROTOBUF_VER}.tar.gz
-cd protobuf-${PROTOBUF_VER}
-./configure --prefix=/usr
-make -j$(nproc)
-make check
-make install
-ldconfig
+# ========== CUDA Install ==========
 
-PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=cpp
-python3 -m venv /python
-source /python/bin/activate
-pip install matplotlib numpy scipy pandas numba pathos
-pip install protobuf --install-option="--cpp_implementation" 
+dnf config-manager --add-repo http://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo
+dnf install -y cuda-command-line-tools-10-2 cuda-compiler-10-2 cuda-libraries-dev-10-2
+
+# ======== Eigen =========
+mkdir /base
+pushd /base
+wget https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz
+tar -xzf eigen-3.3.7.tar.gz
+mv eigen-3.3.7 eigen3
+popd
+
+# ======== Cleanup ======
+
+dnf clean all
+rm -rf /var/cache/yum
+
+
 

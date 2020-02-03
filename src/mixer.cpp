@@ -67,7 +67,7 @@ std::vector<double> sample_form_factor(const std::vector<double>& re_time, const
     for(int sample_i = 0; sample_i < avg_count; ++sample_i) {
         // Sample Hamiltonian
         auto symplex = sample_symplex();
-        auto hamiltonian = std::transform_reduce(hamiltonian_set.begin(), hamiltonian_set.end(), symplex.begin(), 
+        auto hamiltonian = util::transform_reduce(hamiltonian_set.begin(), hamiltonian_set.end(), symplex.begin(), 
             syk::MatrixType::Zero(hamiltonian_set[0].rows(), hamiltonian_set[0].cols()).eval());
 
         // Diagonalize
@@ -94,8 +94,8 @@ int main(int argc, char* argv[]) {
     int avg_count = 1000;
     int trial_count = 1;
     int num_hamiltonians = 2;
-    // auto re_time = logspace(1e5, 1e7-1.0, 100000);
-    auto re_time = logspace(10.0, 1e7-1.0, 100000);
+    // auto re_time = util::logspace(1e5, 1e7-1.0, 100000);
+    auto re_time = util::logspace(10.0, 1e7-1.0, 100000);
 
     std::vector<int> system_sizes(unique_system_sizes.size()*trial_count);
     for(int k = 0; k < unique_system_sizes.size(); ++k) {
@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
             re_time, 
             // [&]() { return syk::RandomGUE(&rng, 1<<(N/2)); }, 
             [&]() { return syk::syk_hamiltonian(&rng, N, 1); },
-            [&]() { return sample_biased_simplex(&rng, num_hamiltonians, 0.1); },
+            [&]() { return util::sample_biased_simplex(&rng, num_hamiltonians, 0.1); },
             avg_count);
     }
 

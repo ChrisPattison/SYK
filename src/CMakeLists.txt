@@ -8,20 +8,22 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 find_package(OpenMP)
-find_package(Protobuf REQUIRED)
-#set(PROTO_FILES cluster_observables.proto)
-#protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
-#protobuf_generate_python(PROTO_PY ${PROTO_FILES})
 
 #find_package(LAPACK REQUIRED)
 find_package(Eigen3 REQUIRED)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU") 
+    link_libraries("stdc++fs")
+endif()
+
+add_compile_options("-march=native")
+add_compile_options("-mtune=native")
+add_compile_options("-pedantic-errors")
+
 # ================= Bench =================
 
-add_executable(bench bench.cpp ${PROTO_SRCS} ${PROTO_HDRS})
+add_executable(bench bench.cpp)
 set_property(TARGET bench PROPERTY CXX_STANDARD 17)
-target_compile_options(bench PUBLIC "-march=native")
-target_compile_options(bench PUBLIC "-mtune=native")
 
 if(OpenMP_CXX_FOUND)
     target_compile_options(bench PUBLIC ${OpenMP_CXX_FLAGS})
@@ -29,44 +31,35 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 target_link_libraries(bench PUBLIC ${PROTOBUF_LIBRARIES} ${LAPACK_LIBRARIES})
-target_include_directories(bench PRIVATE ${EIGEN3_INCLUDE_DIRS})
-target_include_directories(bench PRIVATE ${PROTOBUF_INCLUDE_DIRS})
+target_include_directories(bench PRIVATE ${EIGEN3_INCLUDE_DIR})
 target_include_directories(bench PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 # ================= Spectral =================
 
-add_executable(spectral spectral.cpp ${PROTO_SRCS} ${PROTO_HDRS})
+add_executable(spectral spectral.cpp)
 set_property(TARGET spectral PROPERTY CXX_STANDARD 17)
-target_compile_options(spectral PUBLIC "-march=native")
-target_compile_options(spectral PUBLIC "-mtune=native")
-target_compile_options(spectral PUBLIC "-pedantic-errors")
 
 if(OpenMP_CXX_FOUND)
     target_compile_options(spectral PUBLIC ${OpenMP_CXX_FLAGS})
     target_link_libraries(spectral PUBLIC ${OpenMP_CXX_LIBRARIES})
 endif()
 
-target_link_libraries(spectral PUBLIC ${PROTOBUF_LIBRARIES} ${LAPACK_LIBRARIES})
-target_include_directories(spectral PRIVATE ${EIGEN3_INCLUDE_DIRS})
-target_include_directories(spectral PRIVATE ${PROTOBUF_INCLUDE_DIRS})
+target_link_libraries(spectral PUBLIC ${LAPACK_LIBRARIES})
+target_include_directories(spectral PRIVATE ${EIGEN3_INCLUDE_DIR})
 target_include_directories(spectral PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 # ================= Mixer =================
 
-add_executable(mixer mixer.cpp ${PROTO_SRCS} ${PROTO_HDRS})
+add_executable(mixer mixer.cpp)
 set_property(TARGET mixer PROPERTY CXX_STANDARD 17)
-target_compile_options(mixer PUBLIC "-march=native")
-target_compile_options(mixer PUBLIC "-mtune=native")
-target_compile_options(mixer PUBLIC "-pedantic-errors")
 
 if(OpenMP_CXX_FOUND)
     target_compile_options(mixer PUBLIC ${OpenMP_CXX_FLAGS})
     target_link_libraries(mixer PUBLIC ${OpenMP_CXX_LIBRARIES})
 endif()
 
-target_link_libraries(mixer PUBLIC ${PROTOBUF_LIBRARIES} ${LAPACK_LIBRARIES})
-target_include_directories(mixer PRIVATE ${EIGEN3_INCLUDE_DIRS})
-target_include_directories(mixer PRIVATE ${PROTOBUF_INCLUDE_DIRS})
+target_link_libraries(mixer PUBLIC ${LAPACK_LIBRARIES})
+target_include_directories(mixer PRIVATE ${EIGEN3_INCLUDE_DIR})
 target_include_directories(mixer PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 # ================= TESTS =================

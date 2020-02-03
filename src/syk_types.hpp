@@ -1,6 +1,6 @@
 #pragma once
 
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 
 namespace syk {
 using MatrixType = Eigen::MatrixXcd;
