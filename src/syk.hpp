@@ -150,13 +150,13 @@ MatrixType syk_hamiltonian(rng_type* rng, int N, double J) {
 //     return eigenvals;
 // }
 
-std::vector<std::complex<double> > hamiltonian_eigenvals(const MatrixType& hamiltonian) {
+std::vector<double> hamiltonian_eigenvals(const MatrixType& hamiltonian) {
     syk::GpuEigenValSolver solver;
     return solver.eigenvals(hamiltonian);
 }
 
 
-auto spectral_form_factor(const std::vector<std::complex<double>>& eigenvals) {
+auto spectral_form_factor(const std::vector<double>& eigenvals) {
     return [=](std::complex<double> beta) -> double {
         auto z_part = util::transform_reduce(eigenvals.cbegin(), eigenvals.cend(), 0.0i,
             std::plus<>(), [=](auto a) { return std::exp(a * beta); });

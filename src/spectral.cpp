@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
 
     auto rng = std::mt19937_64(std::random_device()());
     
-    std::vector<std::vector<std::complex<double>>> eigenvals(avg_count);
+    std::vector<std::vector<double>> eigenvals(avg_count);
     for(int k = 0; k < avg_count; ++k) {
         auto hamiltonian = syk::syk_hamiltonian(&rng, N, 1);
         eigenvals[k] = syk::hamiltonian_eigenvals(hamiltonian);
