@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 project(DECODER LANGUAGES CXX CUDA)
 find_package(CUDA 10.2 REQUIRED)
 
@@ -62,3 +62,7 @@ target_link_libraries(mixer PUBLIC ${LAPACK_LIBRARIES})
 target_include_directories(mixer PRIVATE ${EIGEN3_INCLUDE_DIR})
 target_include_directories(mixer PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(mixer PRIVATE CUDA::cusolver)
+
+# ================= Install ================
+
+install(TARGETS bench spectral mixer)
