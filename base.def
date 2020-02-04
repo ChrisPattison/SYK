@@ -23,24 +23,41 @@ dnf install -y gdb valgrind
 dnf install -y make bzip2 autoconf automake libtool curl make unzip
 dnf install -y python3 python3-devel
 #dnf install -y eigen-devel
+dnf install -y openssl openssl-devel
 
 # ========== CUDA Install ==========
 
 dnf config-manager --add-repo http://developer.download.nvidia.com/compute/cuda/repos/rhel7/x86_64/cuda-rhel7.repo
 dnf install -y cuda-command-line-tools-10-2 cuda-compiler-10-2 cuda-libraries-dev-10-2
 
-# ======== Eigen =========
+# ========= Source Builds =========
 mkdir /base
 pushd /base
+mkdir scratch
+
+# ======== Eigen =========
+
+pushd scratch
 wget https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz
 tar -xzf eigen-3.3.7.tar.gz
-mv eigen-3.3.7 eigen3
+mv eigen-3.3.7 ../eigen3
+popd
+
+# ========= CMake =======
+
+pushd scratch
+wget https://github.com/Kitware/CMake/releases/download/v3.16.3/cmake-3.16.3.tar.gz
+tar -xzf cmake-3.16.3.tar.gz
+cd cmake-3.16.3
+mkdir build
+cd build
+cmake3 ..
+make -j$(nproc)
+make install
 popd
 
 # ======== Cleanup ======
 
 dnf clean all
 rm -rf /var/cache/yum
-
-
-
+rm -rf /base/scratch

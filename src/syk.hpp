@@ -7,14 +7,13 @@
 #include <exception>
 #include <cmath>
 
-// #define EIGEN_USE_LAPACKE_STRICT
-
 #include <Eigen/Dense>
 #include <unsupported/Eigen/KroneckerProduct>
 #include <Eigen/Eigenvalues>
 #include "syk_types.hpp"
 #include "util.hpp"
 
+#include "diagonalize.hpp"
 
 namespace syk {
 using namespace std::complex_literals;
@@ -136,20 +135,26 @@ MatrixType syk_hamiltonian(rng_type* rng, int N, double J) {
     return hamiltonian;
 }
 
+// std::vector<std::complex<double> > hamiltonian_eigenvals(const MatrixType& hamiltonian) {
+//     auto eigensolver = Eigen::SelfAdjointEigenSolver<MatrixType>();
+//     eigensolver.compute(hamiltonian, false);
+
+//     if(eigensolver.info() != 0) {
+//         throw std::runtime_error("Eigensolver not converged");
+//     }
+//     const auto& eigenvals_vector = eigensolver.eigenvalues();
+//     std::vector<std::complex<double> > eigenvals(eigenvals_vector.size());
+//     std::copy_n(eigenvals_vector.data(), eigenvals_vector.size(), eigenvals.begin());
+//     std::sort(eigenvals.begin(), eigenvals.end(), [](const auto& a, const auto& b) { return std::abs(a) > std::abs(b); });
+
+//     return eigenvals;
+// }
+
 std::vector<std::complex<double> > hamiltonian_eigenvals(const MatrixType& hamiltonian) {
-    auto eigensolver = Eigen::SelfAdjointEigenSolver<MatrixType>();
-    eigensolver.compute(hamiltonian, false);
-
-    if(eigensolver.info() != 0) {
-        throw std::runtime_error("Eigensolver not converged");
-    }
-    const auto& eigenvals_vector = eigensolver.eigenvalues();
-    std::vector<std::complex<double> > eigenvals(eigenvals_vector.size());
-    std::copy_n(eigenvals_vector.data(), eigenvals_vector.size(), eigenvals.begin());
-    std::sort(eigenvals.begin(), eigenvals.end(), [](const auto& a, const auto& b) { return std::abs(a) > std::abs(b); });
-
-    return eigenvals;
+    syk::GpuEigenValSolver solver;
+    return solver.eigenvals(hamiltonian);
 }
+
 
 auto spectral_form_factor(const std::vector<std::complex<double>>& eigenvals) {
     return [=](std::complex<double> beta) -> double {

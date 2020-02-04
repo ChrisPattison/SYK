@@ -25,7 +25,10 @@ mkdir build
 cd build
 
 PREFIX=
+CMAKE=/usr/local/bin/cmake
+CUDADIR=/usr/local/cuda-10.2
 
-${PREFIX} cmake3 .. -DCMAKE_BUILD_TYPE=Release -DEIGEN3_INCLUDE_DIR=/base/eigen3
+${PREFIX} ${CMAKE} .. -DCMAKE_BUILD_TYPE=Release -DEIGEN3_INCLUDE_DIR=/base/eigen3 \
+    -DCUDA_TOOLKIT_ROOT_DIR=${CUDADIR} -DCMAKE_CUDA_COMPILER=${CUDADIR}/bin/nvcc
 ${PREFIX} make VERBOSE=1 -j$(nproc)
 ${PREFIX} make install
