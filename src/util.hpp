@@ -18,6 +18,16 @@ std::vector<T> logspace(T a, T b, int N) {
     return vals;
 }
 
+template<typename T>
+std::vector<T> linspace(T a, T b, int N) {
+    int n = 0;
+    std::vector<T> vals(N);
+    auto m = (b - a) / static_cast<T>(N);
+    std::generate(vals.begin(), vals.end(), [&]() {
+        return m * static_cast<T>(n++) + a; });
+    return vals;
+}
+
 // http://blog.geomblog.org/2005/10/sampling-from-simplex.html
 template<typename rng_type>
 std::vector<double> sample_unit_simplex(rng_type* rand_gen, int dim) {
@@ -69,5 +79,12 @@ T transform_reduce(InputIt1 first1, InputIt1 last1, InputIt2 first2, T init, Bin
 template<class InputIt1, class InputIt2, class T>
 T transform_reduce(InputIt1 first1, InputIt1 last1, InputIt2 first2, T init) {
     return transform_reduce(first1, last1, first2, init, std::plus<>(), std::multiplies<>());
+}
+
+template<typename rng_type>
+void warmup_rng(rng_type* rng, int warmup_cycles = 100000) {
+    for(int k = 0; k < warmup_cycles; ++k) {
+        (*rng)();
+    }
 }
 }

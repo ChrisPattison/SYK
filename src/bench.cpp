@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
 			for (int k = 0; k < bench_count; ++k) {
 				// auto hamiltonian = syk::syk_hamiltonian(&rng, N, 1); // This has cubic time complexity???
 				auto hamiltonian = syk::RandomGUE(&rng, 1<<(N/2));
-				auto eigenvals = syk::hamiltonian_eigenvals(hamiltonian);
+				auto eigenvals = syk::gpu_hamiltonian_eigenvals(hamiltonian);
 				sum += std::accumulate(eigenvals.begin(), eigenvals.end(), 0.0i);
 			}
 			time_elapsed += std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now() - time_start);

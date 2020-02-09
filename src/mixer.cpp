@@ -42,7 +42,7 @@ bool dump_data(fs::path file_path, const std::vector<system_size_t>& system_size
 
 template<typename system_size_t, typename value_t>
 bool dump_data(fs::path file_path, const std::vector<system_size_t>& system_sizes, const std::vector<value_t>& values) {
-        
+         
     auto output = std::fstream(file_path, std::ios_base::out | std::ios_base::trunc );
     if(output.fail()) { return true; }
 
@@ -54,30 +54,44 @@ bool dump_data(fs::path file_path, const std::vector<system_size_t>& system_size
 }
 
 template<typename sample_func_t, typename sample_symplex_func_t>
-std::vector<double> sample_form_factor(const std::vector<double>& re_time, const sample_func_t& sample_func, const sample_symplex_func_t& sample_symplex, int avg_count) {
+std::vector<double> sample_form_factor(const std::vector<double>& re_time, const sample_func_t& sample_func, const sample_symplex_func_t& sample_symplex, int num_hamiltonians, int avg_count) {
 
     std::vector<std::complex<double>> beta(re_time.size());
-    std::transform(re_time.begin(), re_time.end(), beta.begin(), [](auto v) { return std::complex<double>(1.0, v); });
+    std::transform(re_time.begin(), re_time.end(), beta.begin(), [](auto v) { return std::complex<double>(0.0, v); });
 
     std::vector<double> spectral(beta.size(), 0);
 
-    std::vector<syk::MatrixType> hamiltonian_set(sample_symplex().size());
-    std::generate(hamiltonian_set.begin(), hamiltonian_set.end(), sample_func);
+    std::vector<syk::MatrixType> hamiltonian_set(num_hamiltonians);
+    #pragma omp parallel
+    {
+        auto rng_seed = std::random_device()();
+        auto rng = std::mt19937_64(rng_seed + omp_get_thread_num());
+        util::warmup_rng(&rng);
+        
+        #pragma omp for
+        for(int k = 0; k < hamiltonian_set.size(); ++k) {
+            hamiltonian_set[k] = sample_func(&rng);
+        }
+        
+        #pragma omp for
+        for(int sample_i = 0; sample_i < avg_count; ++sample_i) {
+            // Sample Hamiltonian
+            auto symplex = sample_symplex(&rng);
+            auto hamiltonian = util::transform_reduce(hamiltonian_set.begin(), hamiltonian_set.end(), symplex.begin(), 
+                syk::MatrixType::Zero(hamiltonian_set[0].rows(), hamiltonian_set[0].cols()).eval());
 
-    for(int sample_i = 0; sample_i < avg_count; ++sample_i) {
-        // Sample Hamiltonian
-        auto symplex = sample_symplex();
-        auto hamiltonian = util::transform_reduce(hamiltonian_set.begin(), hamiltonian_set.end(), symplex.begin(), 
-            syk::MatrixType::Zero(hamiltonian_set[0].rows(), hamiltonian_set[0].cols()).eval());
+            // Diagonalize
+            auto eigenvals = syk::gpu_hamiltonian_eigenvals(hamiltonian);
 
-        // Diagonalize
-        auto eigenvals = syk::hamiltonian_eigenvals(hamiltonian);
-
-        // Spectral form factor
-        auto spectral_form_factor = syk::spectral_form_factor(eigenvals);
-        #pragma omp parallel for
-        for(int i = 0; i < beta.size(); ++i) {
-            spectral[i] += spectral_form_factor(beta[i]); 
+            // Spectral form factor
+            auto spectral_form_factor = syk::spectral_form_factor(eigenvals);
+            std::vector<double> sample_spectral(beta.size());
+            std::transform(beta.begin(), beta.end(), sample_spectral.begin(), spectral_form_factor);
+            
+            #pragma omp critical
+            for(int k = 0; k < beta.size(); ++k) {
+                spectral[k] += sample_spectral[k];
+            }
         }
     }
 
@@ -89,30 +103,29 @@ int main(int argc, char* argv[]) {
     auto data_path = fs::path("data");
     fs::create_directory(data_path);
     
-    std::vector<int> unique_system_sizes {6, 10, 14, 18};
-    // std::vector<int> unique_system_sizes {18};
+    std::vector<int> unique_system_sizes {14, 16, 18, 20, 22};
     int avg_count = 1000;
-    int trial_count = 1;
+    int trial_count = 10;
     int num_hamiltonians = 2;
-    // auto re_time = util::logspace(1e5, 1e7-1.0, 100000);
-    auto re_time = util::logspace(10.0, 1e7-1.0, 100000);
+    // auto re_time = util::logspace(1.0, 1e7-1.0, 10000);
+    auto re_time = util::linspace(1e5, 1e6, 10000);
 
     std::vector<int> system_sizes(unique_system_sizes.size()*trial_count);
     for(int k = 0; k < unique_system_sizes.size(); ++k) {
         std::fill(system_sizes.begin() + k * trial_count, system_sizes.begin() + (k+1) * trial_count, unique_system_sizes[k]);
     }
-    auto rng = std::mt19937_64(std::random_device()());
+
     std::vector<std::vector<double>> spectral(system_sizes.size());
-    
+
     // Spectral form factors
     for(int system_size_i = 0; system_size_i < system_sizes.size(); ++system_size_i){
         int N = system_sizes[system_size_i];
 
         spectral[system_size_i] = sample_form_factor(
             re_time, 
-            // [&]() { return syk::RandomGUE(&rng, 1<<(N/2)); }, 
-            [&]() { return syk::syk_hamiltonian(&rng, N, 1); },
-            [&]() { return util::sample_biased_simplex(&rng, num_hamiltonians, 0.1); },
+            [&](auto* rng) { return syk::RandomGUE(rng, 1<<(N/2)); }, 
+            [&](auto* rng) { return util::sample_biased_simplex(rng, num_hamiltonians, 0.1); },
+            num_hamiltonians,
             avg_count);
     }
 

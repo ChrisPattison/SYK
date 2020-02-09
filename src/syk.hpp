@@ -135,24 +135,27 @@ MatrixType syk_hamiltonian(rng_type* rng, int N, double J) {
     return hamiltonian;
 }
 
-// std::vector<std::complex<double> > hamiltonian_eigenvals(const MatrixType& hamiltonian) {
-//     auto eigensolver = Eigen::SelfAdjointEigenSolver<MatrixType>();
-//     eigensolver.compute(hamiltonian, false);
+std::vector<double> cpu_hamiltonian_eigenvals(const MatrixType& hamiltonian) {
+    auto eigensolver = Eigen::SelfAdjointEigenSolver<MatrixType>();
+    eigensolver.compute(hamiltonian, false);
 
-//     if(eigensolver.info() != 0) {
-//         throw std::runtime_error("Eigensolver not converged");
-//     }
-//     const auto& eigenvals_vector = eigensolver.eigenvalues();
-//     std::vector<std::complex<double> > eigenvals(eigenvals_vector.size());
-//     std::copy_n(eigenvals_vector.data(), eigenvals_vector.size(), eigenvals.begin());
-//     std::sort(eigenvals.begin(), eigenvals.end(), [](const auto& a, const auto& b) { return std::abs(a) > std::abs(b); });
+    if(eigensolver.info() != 0) {
+        throw std::runtime_error("Eigensolver not converged");
+    }
+    const auto& eigenvals_vector = eigensolver.eigenvalues();
+    std::vector<double> eigenvals(eigenvals_vector.size());
+    std::copy_n(eigenvals_vector.data(), eigenvals_vector.size(), eigenvals.begin());
+    std::sort(eigenvals.begin(), eigenvals.end());
 
-//     return eigenvals;
-// }
+    return eigenvals;
+}
 
-std::vector<double> hamiltonian_eigenvals(const MatrixType& hamiltonian) {
+std::vector<double> gpu_hamiltonian_eigenvals(const MatrixType& hamiltonian) {
     syk::GpuEigenValSolver solver;
-    return solver.eigenvals(hamiltonian);
+    std::vector<double> eigenvals;
+    #pragma omp critical
+    eigenvals = solver.eigenvals(hamiltonian);
+    return eigenvals;
 }
 
 
