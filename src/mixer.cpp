@@ -35,7 +35,8 @@ bool dump_data(fs::path file_path, const std::vector<system_size_t>& system_size
         for(int k = 0; k < system_sizes.size(); ++k) {
             output << spectral.at(k).at(i) << ",";
         }
-        output << std::endl;
+        output.seekp(-1, std::ios_base::end);
+        output << " " << std::endl;
     }
     return false;
 }
@@ -89,8 +90,10 @@ std::vector<double> sample_form_factor(const std::vector<double>& re_time, const
             std::transform(beta.begin(), beta.end(), sample_spectral.begin(), spectral_form_factor);
             
             #pragma omp critical
-            for(int k = 0; k < beta.size(); ++k) {
-                spectral[k] += sample_spectral[k];
+            {
+                for(int k = 0; k < beta.size(); ++k) {
+                    spectral[k] += sample_spectral[k];
+                }
             }
         }
     }
@@ -104,7 +107,7 @@ int main(int argc, char* argv[]) {
     fs::create_directory(data_path);
     
     std::vector<int> unique_system_sizes {14, 16, 18, 20, 22};
-    int avg_count = 1000;
+    int avg_count = 10000;
     int trial_count = 10;
     int num_hamiltonians = 2;
     // auto re_time = util::logspace(1.0, 1e7-1.0, 10000);
@@ -138,13 +141,9 @@ int main(int argc, char* argv[]) {
         auto plataeu = std::accumulate(spectral[system_size_i].begin(), spectral[system_size_i].end(), 0.0)/spectral[system_size_i].size();
         std::transform(spectral[system_size_i].begin(), spectral[system_size_i].end(), spectral[system_size_i].begin(), 
             [&](auto v) { return (v*v - plataeu*plataeu)/(plataeu*plataeu); });
-        // spectral[system_size_i] = syk::filter_xy(re_time, spectral[system_size_i], 1e2, 1000);
-        #pragma omp critical
         variance[system_size_i] = std::accumulate(spectral[system_size_i].begin(), spectral[system_size_i].end(), 0.0)/spectral[system_size_i].size();
     }
     
     if(dump_data(data_path / "variance.dat", system_sizes, variance)) { return 1; }
-
-    if(dump_data(data_path / "filtered.dat", system_sizes, re_time, spectral)) { return 1; }
     return 0;
 }

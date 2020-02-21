@@ -13,7 +13,7 @@
 using namespace std::complex_literals;
 
 int main(int argc, char* argv[]) {
-    int N = 24;
+    int N = 22;
     int avg_count = 1000;
     auto beta = util::logspace(1e-0i, 1e6i, 10000);
     std::transform(beta.begin(), beta.end(), beta.begin(), [](auto v) { return v + static_cast<std::complex<double>>(0.0); });

@@ -1,9 +1,9 @@
 set autoscale
-set logscale y
+unset logscale y
 unset logscale x
-set key autotitle columnhead
 set xtic auto
 set ytic auto
+set yrange [0:]
 set datafile separator ","
-plot for [n=2:*] "data/variance.dat" using 1:2
+plot  "data/variance.dat" using 1:2
 
