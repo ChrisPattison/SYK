@@ -166,4 +166,10 @@ auto spectral_form_factor(const std::vector<double>& eigenvals) {
         return std::real(z_part * std::conj(z_part));
     };
 }
+
+auto to_eigen_vector(const std::vector<double>& vals) {
+    Eigen::Matrix<MatrixType::Scalar, Eigen::Dynamic, 1> vec(vals.size());
+    std::copy(vals.begin(), vals.end(), vec.data());
+    return vec;
+}
 }
