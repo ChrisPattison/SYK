@@ -161,9 +161,13 @@ std::vector<double> gpu_hamiltonian_eigenvals(const MatrixType& hamiltonian) {
 
 auto spectral_form_factor(const std::vector<double>& eigenvals) {
     return [=](std::complex<double> beta) -> double {
-        auto z_part = util::transform_reduce(eigenvals.cbegin(), eigenvals.cend(), 0.0i,
-            std::plus<>(), [=](auto a) { return std::exp(a * beta); });
-        return std::real(z_part * std::conj(z_part));
+        double sum = 0;
+        for(const auto& u : eigenvals) {
+            for(const auto& v : eigenvals) {
+                sum += std::real(std::exp(beta*(u-v)));
+            }
+        }
+        return sum;
     };
 }
 
