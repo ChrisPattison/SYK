@@ -12,6 +12,21 @@
 
 namespace syk {
 
+#if DIAG_SINGLE_PRECISION
+    using float_t = float;
+    using cuComplex_t = cuFloatComplex;
+    #define PRECISION_HEEVD_bufferSize cusolverDnCheevd_bufferSize
+    #define PRECISION_HEEVD cusolverDnCheevd
+    #define PRECISION_MAKE_FLOAT2 make_float2
+#else
+    using float_t = double;
+    using cuComplex_t = cuDoubleComplex;
+    #define PRECISION_HEEVD_bufferSize cusolverDnZheevd_bufferSize
+    #define PRECISION_HEEVD cusolverDnZheevd
+    #define PRECISION_MAKE_FLOAT2 make_double2
+#endif
+
+
 GpuEigenValSolver::GpuEigenValSolver() {
     if(cusolverDnCreate(&handle_)) { throw std::runtime_error("Failed to init cusolver"); }
 }
@@ -58,16 +73,16 @@ GpuEigenValSolver::~GpuEigenValSolver() {
 std::vector<double> GpuEigenValSolver::eigenvals(const MatrixType& matrix) {
     assert(matrix.cols() == matrix.rows());
     int cols = matrix.cols();
-    thrust::device_vector<float> result(cols);
+    thrust::device_vector<float_t> result(cols);
 
-    thrust::host_vector<cuFloatComplex> host_A(matrix.size());
-    std::transform(matrix.data(), matrix.data() + matrix.size(), host_A.begin(), [](auto v) { return make_float2(static_cast<float>(v.real()), static_cast<float>(v.imag())); });
-    thrust::device_vector<cuFloatComplex> A = host_A;
+    thrust::host_vector<cuComplex_t> host_A(matrix.size());
+    std::transform(matrix.data(), matrix.data() + matrix.size(), host_A.begin(), [](auto v) { return PRECISION_MAKE_FLOAT2(static_cast<float_t>(v.real()), static_cast<float_t>(v.imag())); });
+    thrust::device_vector<cuComplex_t> A = host_A;
     cudaDeviceSynchronize();
 
     // Work size query
     int lwork;
-    auto status = cusolverDnCheevd_bufferSize(handle_, 
+    auto status = PRECISION_HEEVD_bufferSize(handle_, 
         CUSOLVER_EIG_MODE_NOVECTOR, CUBLAS_FILL_MODE_LOWER, 
         cols, thrust::raw_pointer_cast(A.data()), cols, thrust::raw_pointer_cast(result.data()), &lwork);
     cudaDeviceSynchronize();
@@ -75,9 +90,9 @@ std::vector<double> GpuEigenValSolver::eigenvals(const MatrixType& matrix) {
 
     // Diagonalize
     // TODO: Check storage order and if zgeev is expecting square matrix 
-    thrust::device_vector<cuFloatComplex> work(lwork);
+    thrust::device_vector<cuComplex_t> work(lwork);
     thrust::device_vector<int> device_info(1);
-    status = cusolverDnCheevd(handle_, CUSOLVER_EIG_MODE_NOVECTOR, CUBLAS_FILL_MODE_LOWER,
+    status = PRECISION_HEEVD(handle_, CUSOLVER_EIG_MODE_NOVECTOR, CUBLAS_FILL_MODE_LOWER,
         cols, thrust::raw_pointer_cast(A.data()), cols, 
         thrust::raw_pointer_cast(result.data()), 
         thrust::raw_pointer_cast(work.data()), lwork, 
@@ -85,7 +100,7 @@ std::vector<double> GpuEigenValSolver::eigenvals(const MatrixType& matrix) {
     cudaDeviceSynchronize();
     if(device_info[0] != 0 || status != 0) { throw std::runtime_error("Failed to run Zheevd"); }
    
-    thrust::host_vector<float> host_result = result;
+    thrust::host_vector<float_t> host_result = result;
     cudaDeviceSynchronize();
     std::vector<double> stl_result(host_result.size());
     std::copy(host_result.begin(), host_result.end(), stl_result.begin());

@@ -21,6 +21,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     link_libraries("stdc++fs")
 endif()
 
+set(DIAG_SINGLE_PRECISION OFF CACHE BOOL "Use single precision in GPU diagonalization routine")
+if(DIAG_SINGLE_PRECISION)
+    add_definitions(-DDIAG_SINGLE_PRECISION)
+endif()
+message("* Using single precision GPU diagonalization : ${DIAG_SINGLE_PRECISION}")
+
 # ================= Bench =================
 
 add_executable(bench bench.cpp diagonalize.cu)
