@@ -55,8 +55,8 @@ bool dump_data(fs::path file_path, const std::vector<system_size_t>& system_size
     return false;
 }
 
-template<typename sample_func_t, typename sample_symplex_func_t>
-std::vector<double> sample_form_factor(const std::vector<double>& re_time, const sample_func_t& sample_func, const sample_symplex_func_t& sample_symplex, int num_hamiltonians, int avg_count) {
+template<typename sample_func_t, typename sample_simplex_func_t>
+std::vector<double> sample_form_factor(const std::vector<double>& re_time, const sample_func_t& sample_func, const sample_simplex_func_t& sample_simplex, int num_hamiltonians, int avg_count) {
     assert(num_hamiltonians==2);
 
     std::vector<std::complex<double>> beta(re_time.size());
@@ -76,14 +76,17 @@ std::vector<double> sample_form_factor(const std::vector<double>& re_time, const
             hamiltonian_set[k] = sample_func(&rng);
         }
         
-        hamiltonian_set[0] = syk::to_eigen_vector(syk::gpu_hamiltonian_eigenvals(hamiltonian_set[0])).asDiagonal();
+        // This gives some suspect results, but the calculation goes faster??
+        // hamiltonian_set[0] = syk::to_eigen_vector(syk::gpu_hamiltonian_eigenvals(hamiltonian_set[0])).asDiagonal();
         
         #pragma omp for
         for(int sample_i = 0; sample_i < util::gauss_hermite_points.size(); ++sample_i) {
             auto x_val = util::gauss_hermite_points[sample_i];
             // Sample Hamiltonian
-            std::vector<double> symplex = {1.0-x_val, x_val};
-            auto hamiltonian = util::transform_reduce(hamiltonian_set.begin(), hamiltonian_set.end(), symplex.begin(), 
+            double norm = 1.0/std::sqrt(1.0 + x_val*x_val);
+            std::vector<double> simplex = {norm, x_val * norm};
+            
+            auto hamiltonian = util::transform_reduce(hamiltonian_set.begin(), hamiltonian_set.end(), simplex.begin(), 
                 syk::MatrixType::Zero(hamiltonian_set[0].rows(), hamiltonian_set[0].cols()).eval());
 
             // Diagonalize
