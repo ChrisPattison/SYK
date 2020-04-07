@@ -106,7 +106,7 @@ std::vector<double> sample_form_factor(const std::vector<double>& re_time, const
         }
     }
 
-    std::transform(spectral.begin(), spectral.end(), spectral.begin(), [&](const auto& v) { return v; });
+    std::transform(spectral.begin(), spectral.end(), spectral.begin(), [&](const auto& v) { return v / avg_count; });
     return spectral;
 }
 
@@ -135,7 +135,10 @@ int main(int argc, char* argv[]) {
         spectral[system_size_i] = sample_form_factor(
             re_time, 
             [&](auto* rng) { return syk::RandomGUE(rng, 1<<(N/2)); }, 
-            [&](auto* rng) { return util::sample_biased_simplex(rng, num_hamiltonians, 0.1); },
+            [&](auto* rng) { 
+                auto x_val = std::normal_distribution(0.0, 1.0)(*rng) * 0.1; 
+                return std::vector<double> {1.0/(1.0+x_val), x_val/(1.0+x_val)}; 
+            },
             num_hamiltonians,
             avg_count);
     }
