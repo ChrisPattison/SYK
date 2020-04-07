@@ -3,8 +3,6 @@ From: ./base.sif
 
 %runscript
 syk
-#source /python/bin/activate
-#${SCRIPT_PATH}/syk.py "$@"
 
 %files
 ./src /src
@@ -19,8 +17,6 @@ export PYTHON_PATH=${PYTHON_PATH}:${SCRIPT_PATH}/build
 %post
 cd /src
 
-
-#rm -rf build
 mkdir build
 cd build
 
