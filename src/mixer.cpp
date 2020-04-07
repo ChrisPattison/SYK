@@ -2,7 +2,6 @@
 #include "util.hpp"
 #include "random_matrix.hpp"
 #include "filter.hpp"
-#include "gauss_hermite.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -80,11 +79,9 @@ std::vector<double> sample_form_factor(const std::vector<double>& re_time, const
         // hamiltonian_set[0] = syk::to_eigen_vector(syk::gpu_hamiltonian_eigenvals(hamiltonian_set[0])).asDiagonal();
         
         #pragma omp for
-        for(int sample_i = 0; sample_i < util::gauss_hermite_points.size(); ++sample_i) {
-            auto x_val = util::gauss_hermite_points[sample_i];
+        for(int sample_i = 0; sample_i < avg_count; ++sample_i) {
             // Sample Hamiltonian
-            double norm = 1.0/std::sqrt(1.0 + x_val*x_val);
-            std::vector<double> simplex = {norm, x_val * norm};
+            auto simplex = sample_simplex(&rng);
             
             auto hamiltonian = util::transform_reduce(hamiltonian_set.begin(), hamiltonian_set.end(), simplex.begin(), 
                 syk::MatrixType::Zero(hamiltonian_set[0].rows(), hamiltonian_set[0].cols()).eval());
@@ -100,7 +97,7 @@ std::vector<double> sample_form_factor(const std::vector<double>& re_time, const
             #pragma omp critical
             {
                 for(int k = 0; k < beta.size(); ++k) {
-                    spectral[k] += sample_spectral[k] * util::gauss_hermite_weights[sample_i];
+                    spectral[k] += sample_spectral[k];
                 }
             }
         }
@@ -115,10 +112,10 @@ int main(int argc, char* argv[]) {
     fs::create_directory(data_path);
     
     std::vector<int> unique_system_sizes {14, 16, 18, 20, 22};
-    int avg_count = 10000;
+    int avg_count = 1000;
     int trial_count = 1;
     int num_hamiltonians = 2;
-    auto re_time = util::logspace(1.0, 1e7-1.0, 10000);
+    auto re_time = util::logspace(1e-1, 1e6-1.0, 1000);
     // auto re_time = util::linspace(1e5, 1e6, 10000);
 
     std::vector<int> system_sizes(unique_system_sizes.size()*trial_count);
@@ -137,7 +134,8 @@ int main(int argc, char* argv[]) {
             [&](auto* rng) { return syk::RandomGUE(rng, 1<<(N/2)); }, 
             [&](auto* rng) { 
                 auto x_val = std::normal_distribution(0.0, 1.0)(*rng) * 0.1; 
-                return std::vector<double> {1.0/(1.0+x_val), x_val/(1.0+x_val)}; 
+                double norm = 1.0/std::sqrt(1.0 + x_val*x_val);
+                return std::vector<double> {norm, x_val * norm}; 
             },
             num_hamiltonians,
             avg_count);
