@@ -11,7 +11,8 @@ mixer
 export SHELL=/bin/bash
 export SCRIPT_PATH=/src
 export PATH=${PATH}:${SCRIPT_PATH}/build
-export PYTHON_PATH=${PYTHON_PATH}:${SCRIPT_PATH}/build
+export PYTHON_PATH=${PYTHON_PATH}:/base
+source /base/python/bin/activate
 
 %labels
 

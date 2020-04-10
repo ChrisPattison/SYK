@@ -9,6 +9,7 @@ From: centos:8
 export CUDADIR=/usr/local/cuda-10.2
 export PATH="${CUDADIR}/bin:$PATH"
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${CUDADIR}/lib64"
+export PYTHONPATH="${PYTHONPATH}:/base"
 
 %labels
 
@@ -68,6 +69,13 @@ cmake3 ..
 make -j$(nproc)
 make install
 popd
+
+# ======== Python Setup ========
+
+python3 -m venv /base/python
+source /base/python/bin/activate
+pip install matplotlib numpy scipy pandas flatbuffers numba
+deactivate
 
 # ======== Cleanup ======
 
