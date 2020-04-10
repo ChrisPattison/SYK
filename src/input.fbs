@@ -1,0 +1,17 @@
+include "complex.fbs";
+
+namespace SYKSchema;
+
+/// n x m complex matrix stored in column major order
+table Matrix {
+    size_n: int;
+    size_m: int;
+    data:   [Complex64];
+}
+
+table Input {
+    hamiltonians: [Matrix];
+}
+
+file_identifier "IOIN";
+root_type Input;

@@ -9,11 +9,8 @@
 
 #include <Eigen/Dense>
 #include <unsupported/Eigen/KroneckerProduct>
-#include <Eigen/Eigenvalues>
 #include "syk_types.hpp"
 #include "util.hpp"
-
-#include "diagonalize.hpp"
 
 namespace syk {
 using namespace std::complex_literals;
@@ -115,8 +112,7 @@ struct FermionRep {
 
 template<typename rng_type>
 MatrixType syk_hamiltonian(rng_type* rng, int N, double J) {
-    assert(N%2 == 0);
-    auto hilbert_space_size = (1 << N/2);
+    auto hilbert_space_size = (1 << (N+1)/2);
     MatrixType hamiltonian = MatrixType::Zero(hilbert_space_size, hilbert_space_size);
     auto repp = FermionRep(N);
 
@@ -133,29 +129,6 @@ MatrixType syk_hamiltonian(rng_type* rng, int N, double J) {
         }
     }
     return hamiltonian;
-}
-
-std::vector<double> cpu_hamiltonian_eigenvals(const MatrixType& hamiltonian) {
-    auto eigensolver = Eigen::SelfAdjointEigenSolver<MatrixType>();
-    eigensolver.compute(hamiltonian, false);
-
-    if(eigensolver.info() != 0) {
-        throw std::runtime_error("Eigensolver not converged");
-    }
-    const auto& eigenvals_vector = eigensolver.eigenvalues();
-    std::vector<double> eigenvals(eigenvals_vector.size());
-    std::copy_n(eigenvals_vector.data(), eigenvals_vector.size(), eigenvals.begin());
-    std::sort(eigenvals.begin(), eigenvals.end());
-
-    return eigenvals;
-}
-
-std::vector<double> gpu_hamiltonian_eigenvals(const MatrixType& hamiltonian) {
-    syk::GpuEigenValSolver solver;
-    std::vector<double> eigenvals;
-    #pragma omp critical
-    eigenvals = solver.eigenvals(hamiltonian);
-    return eigenvals;
 }
 
 

@@ -1,0 +1,13 @@
+namespace SYKSchema;
+
+table Point {
+    params: [float64];
+    eigenvals: [float64];
+}
+
+table Output {
+    data: [Point];
+}
+
+file_identifier "IOOT";
+root_type Output;

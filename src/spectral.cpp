@@ -1,4 +1,5 @@
 #include "syk.hpp"
+#include "diagonalize.hpp"
 #include "util.hpp"
 #include "random_matrix.hpp"
 

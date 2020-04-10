@@ -2,12 +2,13 @@ Bootstrap: localimage
 From: ./base.sif
 
 %runscript
-syk
+mixer
 
 %files
 ./src /src
 
 %environment
+export SHELL=/bin/bash
 export SCRIPT_PATH=/src
 export PATH=${PATH}:${SCRIPT_PATH}/build
 export PYTHON_PATH=${PYTHON_PATH}:${SCRIPT_PATH}/build
@@ -29,3 +30,6 @@ ${PREFIX} ${CMAKE} .. -DCMAKE_BUILD_TYPE=Release -DEIGEN3_INCLUDE_DIR=/base/eige
 #    -DDIAG_SINGLE_PRECISION=ON
 ${PREFIX} make VERBOSE=1 -j$(nproc)
 ${PREFIX} make install
+
+cp -r flatbuff/SYKSchema /base
+chmod -R 0775 /base/SYKSchema
