@@ -54,7 +54,7 @@ std::vector<double> sample_biased_simplex(rng_type* rand_gen, int dim, double si
     return simplex;
 }
 
-template<class InputIt, class T, class BinaryOp, class UnaryOp>
+template<typename InputIt, typename T, typename BinaryOp, typename UnaryOp>
 T transform_reduce(InputIt first, InputIt last, T init, BinaryOp binop, UnaryOp unary_op) {
     T result = init;
     for(; first != last; ++first) {
@@ -64,7 +64,7 @@ T transform_reduce(InputIt first, InputIt last, T init, BinaryOp binop, UnaryOp 
 }
 
 
-template <class InputIt1, class InputIt2, class T, class BinaryOp1, class BinaryOp2>
+template <typename InputIt1, typename InputIt2, typename T, typename BinaryOp1, typename BinaryOp2>
 T transform_reduce(InputIt1 first1, InputIt1 last1, InputIt2 first2, T init, BinaryOp1 binary_op1, BinaryOp2 binary_op2) {
     T result = init;
     while(first1 != last1) {
@@ -76,7 +76,7 @@ T transform_reduce(InputIt1 first1, InputIt1 last1, InputIt2 first2, T init, Bin
     return result;
 }
 
-template<class InputIt1, class InputIt2, class T>
+template<typename InputIt1, typename InputIt2, typename T>
 T transform_reduce(InputIt1 first1, InputIt1 last1, InputIt2 first2, T init) {
     return transform_reduce(first1, last1, first2, init, std::plus<>(), std::multiplies<>());
 }
