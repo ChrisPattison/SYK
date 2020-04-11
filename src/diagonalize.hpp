@@ -60,8 +60,6 @@ std::vector<double> QR_hamiltonian_eigenvals(const MatrixType& ham, MatrixType* 
     MatrixType A = Q_H->adjoint() * ham * *Q_H;
     Eigen::HouseholderQR<MatrixType> qr(ham.rows(), ham.cols());
     
-    std::cerr << A << std::endl;
-
     // TODO: Use tridiagonal form
     int k;
     int deflate = ham.diagonal().size();
