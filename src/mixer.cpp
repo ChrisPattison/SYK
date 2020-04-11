@@ -108,22 +108,30 @@ int main(int argc, char* argv[]) {
     flatbuffers::FlatBufferBuilder output_builder(trials * hamiltonian_set.front().rows() * sizeof(syk::MatrixType::Scalar));
     std::vector<flatbuffers::Offset<SYKSchema::Point>> points;
     points.reserve(trials);
-    #pragma omp parallel
+    
     {
         auto rng_seed = std::random_device()();
         auto rng = std::mt19937_64(rng_seed + omp_get_thread_num());
         util::warmup_rng(&rng);
 
-        #pragma omp for
-        for(int sample_i = 0; sample_i < trials; ++sample_i) {
-            // Sample Hamiltonian
+        syk::MatrixType Q_cache = syk::MatrixType::Identity(hamiltonian_set.front().rows(), hamiltonian_set.front().cols());
+
+        // Sample Hamiltonians
+        std::vector<std::vector<double>> x_val_set(trials);
+        std::generate(x_val_set.begin(), x_val_set.end(), [&]() {
             std::vector<double> x_vals(hamiltonian_set.size());
             std::generate(x_vals.begin()+1, x_vals.end(), [&]() { return std::normal_distribution(0.0, 1.0)(rng) * distr_width; });
             x_vals[0] = 1;
-
             double sum_squares = util::transform_reduce(x_vals.begin()+1, x_vals.end(), 0.0, std::plus<>(), [](const auto& v) { return v * v;} );
             double norm = 1.0/std::sqrt(1.0 + sum_squares);
             std::transform(x_vals.begin(), x_vals.end(), x_vals.begin(), [&](const auto& v) { return v * norm;});
+            return x_vals;
+        });
+        std::sort(x_val_set.begin(), x_val_set.end(), [](const auto& a, const auto& b) { return a[0] < b[0]; });
+        std::stable_sort(x_val_set.begin(), x_val_set.end(), [](const auto& a, const auto& b) { return (a[1] - b[1]) > 0; });
+
+        for(const auto& x_vals : x_val_set) {
+
 
             syk::MatrixType hamiltonian = util::transform_reduce(hamiltonian_set.begin(), hamiltonian_set.end(), x_vals.begin(), 
                 syk::MatrixType::Zero(hamiltonian_set.front().rows(), hamiltonian_set.front().cols()).eval());
@@ -131,7 +139,8 @@ int main(int argc, char* argv[]) {
             // Diagonalize
             std::vector<double> eigenvals;
             try {
-                eigenvals = syk::gpu_hamiltonian_eigenvals(hamiltonian);
+                Q_cache.setIdentity();
+                eigenvals = syk::QR_hamiltonian_eigenvals(hamiltonian, &Q_cache);
             }catch(const std::exception& e) {
                 std::cerr << "Failure during diagonalization: " << e.what() << std::endl;
                 throw;
