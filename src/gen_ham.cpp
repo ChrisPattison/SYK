@@ -13,14 +13,14 @@
 
 namespace fs = std::filesystem;
 
-enum class HamType { syk, gue };
+enum class HamType { syk, gue, goe };
 
 void print_args() {
     std::cerr
-        << "gen_ham <output_file> <num_hamiltonians> <ensemble [syk/gue]> <size>" << std::endl
+        << "gen_ham <output_file> <num_hamiltonians> <ensemble [syk/gue/goe]> <size>" << std::endl
         << "Restrictions on size:" << std::endl
         << "SYK: # of fermions" << std::endl
-        << "GUE: Vector space dimension" << std::endl;
+        << "GUE/GOE: Vector space dimension" << std::endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -47,9 +47,10 @@ int main(int argc, char* argv[]) {
     HamType ham_type;
     if      (ensemble_arg == "syk") { ham_type = HamType::syk; }
     else if (ensemble_arg == "gue") { ham_type = HamType::gue; }
+    else if (ensemble_arg == "goe") { ham_type = HamType::goe; }
     else {
         print_args();
-        std::cerr << "Invalid ensemble type. Valid types are <syk/gue>" << std::endl;
+        std::cerr << "Invalid ensemble type. Valid types are <syk/gue/goe>" << std::endl;
         return 1;
     }
 
@@ -76,6 +77,7 @@ int main(int argc, char* argv[]) {
 
     switch(ham_type) {
         case HamType::gue: std::generate(matrices.begin(), matrices.end(), [&]() { return syk::RandomGUE(&rng, size); }); break;
+        case HamType::goe: std::generate(matrices.begin(), matrices.end(), [&]() { return syk::RandomGOE(&rng, size); }); break;
         case HamType::syk: std::generate(matrices.begin(), matrices.end(), [&]() { return syk::syk_hamiltonian(&rng, size, 1.0); }); break;
     }
 
