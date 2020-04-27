@@ -16,7 +16,12 @@ endif()
 
 find_package(FlatBuffers REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(Boost REQUIRED)
 find_package(CUDAToolkit REQUIRED)
+find_package(Magma REQUIRED)
+
+message("${Magma_ROOT}")
+message("${Magma_INCLUDE_DIR}")
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU") 
     link_libraries("stdc++fs")
@@ -32,7 +37,7 @@ message("* Using single precision GPU diagonalization : ${DIAG_SINGLE_PRECISION}
 
 # ================= Schemas =================
 
-set(flatbuff_files input.fbs output.fbs complex.fbs)
+set(flatbuff_files input.fbs output.fbs checkpoint.fbs types.fbs)
 set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS "--python")
 build_flatbuffers("${flatbuff_files}" "" gen_flatbuff "" "${CMAKE_CURRENT_BINARY_DIR}/flatbuff" "" "")
 
@@ -45,9 +50,10 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(bench PUBLIC ${OpenMP_CXX_LIBRARIES})
 endif()
 
-target_link_libraries(bench PUBLIC ${PROTOBUF_LIBRARIES})
+target_include_directories(bench PRIVATE ${Magma_INCLUDE_DIR})
 target_include_directories(bench PRIVATE ${EIGEN3_INCLUDE_DIR})
 target_include_directories(bench PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(bench PRIVATE ${Magma_LIBRARIES})
 target_link_libraries(bench PRIVATE CUDA::cusolver)
 
 # ================= Spectral =================
@@ -59,9 +65,10 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(spectral PUBLIC ${OpenMP_CXX_LIBRARIES})
 endif()
 
-target_link_libraries(spectral PUBLIC)
+target_include_directories(spectral PRIVATE ${Magma_INCLUDE_DIR})
 target_include_directories(spectral PRIVATE ${EIGEN3_INCLUDE_DIR})
 target_include_directories(spectral PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(spectral PRIVATE ${Magma_LIBRARIES})
 target_link_libraries(spectral PRIVATE CUDA::cusolver)
 
 # ================= Mixer =================
@@ -74,10 +81,12 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 add_dependencies(mixer gen_flatbuff)
-target_include_directories(mixer PRIVATE gen_flatbuff::GENERATED_INCLUDES_DIR)
+target_include_directories(mixer PRIVATE ${BOOST_INCLUDE_DIR})
+target_include_directories(mixer PRIVATE ${Magma_INCLUDE_DIR})
 target_include_directories(mixer PRIVATE ${FLATBUFFERS_INCLUDE_DIR})
 target_include_directories(mixer PRIVATE ${EIGEN3_INCLUDE_DIR})
 target_include_directories(mixer PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(mixer PRIVATE ${Magma_LIBRARIES})
 target_link_libraries(mixer PRIVATE CUDA::cusolver)
 
 # ================= Gen Ham =================
@@ -90,7 +99,6 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 add_dependencies(gen_ham gen_flatbuff)
-target_include_directories(gen_ham PRIVATE gen_flatbuff::GENERATED_INCLUDES_DIR)
 target_include_directories(gen_ham PRIVATE ${FLATBUFFERS_INCLUDE_DIR})
 target_include_directories(gen_ham PRIVATE ${EIGEN3_INCLUDE_DIR})
 target_include_directories(gen_ham PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
