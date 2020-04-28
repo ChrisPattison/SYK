@@ -84,25 +84,43 @@ tar -xzf eigen-3.3.7.tar.gz
 mv eigen-3.3.7 ../eigen3
 popd
 
-# ========= Flat Buffers =======
-
-pushd scratch
-wget https://github.com/google/flatbuffers/archive/v1.12.0.tar.gz
-tar -xzf v1.12.0.tar.gz
-cd flatbuffers-1.12.0
-mkdir build
-cd build
-cmake ..
-make -j$(nproc)
-make install
-popd
-
 # ======== Python Setup ========
 
 python3 -m venv /base/python
 source /base/python/bin/activate
 pip install matplotlib numpy scipy pandas flatbuffers numba
 deactivate
+
+# ========= Flat Buffers =======
+
+pushd scratch
+wget https://github.com/google/flatbuffers/archive/v1.12.0.tar.gz
+tar -xzf v1.12.0.tar.gz
+cd flatbuffers-1.12.0
+
+# Patch for 64 bit
+sed -i "s/typedef uint32_t uoffset_t;/typedef uint64_t uoffset_t;/g" include/flatbuffers/base.h
+sed -i "s/typedef int32_t soffset_t;/typedef int64_t soffset_t;/g" include/flatbuffers/base.h
+sed -i "s/static const size_t kFileIdentifierLength = 4;/static const size_t kFileIdentifierLength = 8;/g" include/flatbuffers/flatbuffers.h
+find -name "*\.fbs" | xargs sed -ri "s/(file_identifier \".*)\";/\16464\";/"
+# Binary tests with goldens trip this
+sed -i "s/FLATBUFFERS_ASSERT(strlen(file_identifier) == kFileIdentifierLength);//g" include/flatbuffers/flatbuffers.h
+
+PYTHON_FLATBUFFERS=/base/python/lib/python3.6/site-packages/flatbuffers
+sed -i "s/uoffset = uint32/uoffset = uint64/" ${PYTHON_FLATBUFFERS}/packer.py
+sed -i "s/soffset = int32/soffset = int64/" ${PYTHON_FLATBUFFERS}/packer.py
+sed -i "s/FILE_IDENTIFIER_LENGTH=4/FILE_IDENTIFIER_LENGTH=8/" ${PYTHON_FLATBUFFERS}/encode.py
+sed -i "s/class SOffsetTFlags(Int32Flags):/class SOffsetTFlags(Int64Flags):/" ${PYTHON_FLATBUFFERS}/number_types.py
+sed -i "s/class UOffsetTFlags(Uint32Flags):/class UOffsetTFlags(Uint64Flags):/" ${PYTHON_FLATBUFFERS}/number_types.py
+sed -i "s/return encode.Get(packer.int32, buf, offset)/return encode.Get(packer.int64, buf, offset)/" ${PYTHON_FLATBUFFERS}/util.py
+sed -i "s/return buf, offset + number_types.Int32Flags.bytewidth/return buf, offset + number_types.Int64Flags.bytewidth/" ${PYTHON_FLATBUFFERS}/util.py
+
+mkdir build
+cd build
+cmake ..
+make -j$(nproc)
+make install
+popd
 
 # ======== Cleanup ======
 

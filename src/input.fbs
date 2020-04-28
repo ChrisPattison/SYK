@@ -6,5 +6,5 @@ table Input {
     hamiltonians: [Matrix];
 }
 
-file_identifier "IOIN";
+file_identifier "IO_IN___";
 root_type Input;

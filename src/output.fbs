@@ -9,5 +9,5 @@ table Output {
     data: [Point];
 }
 
-file_identifier "IOOT";
+file_identifier "IO_OUT__";
 root_type Output;
