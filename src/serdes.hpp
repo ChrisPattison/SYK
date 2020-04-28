@@ -19,7 +19,7 @@ syk::MatrixType load_matrix(const SYKSchema::Matrix& serialized) {
     for(int j = 0; j < matrix.rows(); ++j) {
         for(int i = 0; i < matrix.cols(); ++i) {
             const auto& coeff = serialized.data()->Get(i + j*matrix.rows());
-            if(coeff == nullptr) { throw std::runtime_error("Null coefficient pointer"); }
+            assert(coeff != nullptr); // Flatbuffers will never return a nullptr from Get
             matrix(i,j) = std::complex<double> {coeff->real(), coeff->imag()};
         }
     }
@@ -36,5 +36,36 @@ flatbuffers::Offset<SYKSchema::Matrix> dump_matrix(const syk::MatrixType& matrix
         };
     auto vec = builder->CreateVectorOfStructs(static_cast<std::size_t>(matrix.size()), serialize);
     return SYKSchema::CreateMatrix(*builder, matrix.rows(), matrix.cols(), vec);
+}
+
+/** Copy serialized output data into fresh buffer
+ */
+template<typename points_container>
+std::vector<flatbuffers::Offset<SYKSchema::Point>> copy_points(const points_container& points, flatbuffers::FlatBufferBuilder* builder) {
+    std::vector<flatbuffers::Offset<SYKSchema::Point>> dest_points;
+    
+    for(const auto& src_point : points) {
+        if(src_point->params() == nullptr || src_point->eigenvals() == nullptr)
+            { std::runtime_error("Missing field in checkpoint data point"); }
+
+        std::function copy_params = [&](std::size_t index) {
+            const auto& val_ptr = src_point->params()->Get(index++);
+            assert(val_ptr != nullptr);
+            return val_ptr;
+        };
+        auto params_vector = builder->CreateVector(src_point->params()->size(), copy_params);
+        
+        std::function copy_eigenvals = [&](std::size_t index) {
+            const auto& val_ptr = src_point->eigenvals()->Get(index++);
+            assert(val_ptr != nullptr);
+            return val_ptr;
+        };
+        auto eigenvals_vector = builder->CreateVector(src_point->eigenvals()->size(), copy_eigenvals);
+
+
+        auto output_point = SYKSchema::CreatePoint(*builder, params_vector, eigenvals_vector);
+        dest_points.push_back(output_point);
+    }
+    return dest_points;
 }
 }

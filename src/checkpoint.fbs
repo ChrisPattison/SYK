@@ -1,0 +1,19 @@
+include "types.fbs";
+include "output.fbs";
+
+namespace SYKSchema;
+
+struct Hash {
+    data: [uint32:5];
+}
+
+table Checkpoint {
+    input_hash: Hash;
+    output:     Output;
+//    params:     [float64];
+//    iteration:  Matrix;
+}
+
+file_identifier "IOCK";
+root_type Checkpoint;
+

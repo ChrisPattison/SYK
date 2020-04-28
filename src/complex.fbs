@@ -1,6 +1,0 @@
-namespace SYKSchema;
-
-struct Complex64 {
-    real: float64;
-    imag: float64;
-}

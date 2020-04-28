@@ -87,4 +87,12 @@ void warmup_rng(rng_type* rng, int warmup_cycles = 100000) {
         (*rng)();
     }
 }
+
+template<typename stream_type>
+std::size_t get_stream_size(stream_type* stream) {
+    stream->seekg(0, std::ios::end);
+    std::size_t num_bytes = stream->tellg();
+    stream->seekg(0, std::ios::beg);
+    return num_bytes;
+}
 }

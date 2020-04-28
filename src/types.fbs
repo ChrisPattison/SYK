@@ -1,0 +1,13 @@
+namespace SYKSchema;
+
+struct Complex64 {
+    real: float64;
+    imag: float64;
+}
+
+/// n x m complex matrix stored in column major order
+table Matrix {
+    size_n: int;
+    size_m: int;
+    data:   [Complex64];
+}
