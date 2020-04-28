@@ -44,7 +44,7 @@ pushd scratch
 wget https://github.com/Kitware/CMake/releases/download/v3.17.1/cmake-3.17.1.tar.gz
 tar -xzf cmake-3.17.1.tar.gz
 cd cmake-3.17.1
-./configure
+./configure --parallel=$(nproc)
 make -j$(nproc)
 make install
 popd
