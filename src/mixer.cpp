@@ -129,6 +129,7 @@ int main(int argc, char* argv[]) {
     flatbuffers::FlatBufferBuilder output_builder(output_buffer_reservation);
     std::vector<flatbuffers::Offset<SYKSchema::Point>> points;
     points.reserve(trials);
+    std::int64_t total_compute = 0;
 
     // Load checkpoint if available
     if(checkpoints_enabled && fs::exists(checkpoint_path)) {
@@ -149,7 +150,7 @@ int main(int argc, char* argv[]) {
             if(checkpoint_schema->output() == nullptr || checkpoint_schema->output()->data() == nullptr) { throw std::runtime_error("Missing output or output data field in checkpoint"); }
 
             points = util::copy_points(*checkpoint_schema->output()->data(), &output_builder);
-
+            total_compute = checkpoint_schema->output()->total_compute();
         }catch(const std::exception& e) {
             std::cerr << "Failed to load from checkpoint: " << e.what() << std::endl;
             return 1;
@@ -194,12 +195,15 @@ int main(int argc, char* argv[]) {
                 points.push_back(point);
             }
             // Checkpoint
-            if(checkpoints_enabled && std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - last_checkpoint).count() > checkpoint_period) {
+            auto seconds_elapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - last_checkpoint).count();
+            if(checkpoints_enabled && seconds_elapsed > checkpoint_period) {
+                total_compute += seconds_elapsed;
+
                 auto checkpoint_file = std::fstream(checkpoint_path, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc | std::ios_base::ate);
                 flatbuffers::FlatBufferBuilder checkpoint_builder(output_buffer_reservation);
                 
                 // TODO: This probably leaks some memory
-                output_builder.Finish(SYKSchema::CreateOutput(output_builder, output_builder.CreateVector(points)));
+                output_builder.Finish(SYKSchema::CreateOutput(output_builder, total_compute, output_builder.CreateVector(points)));
                 auto output_schema = SYKSchema::GetOutput(output_builder.GetBufferPointer());
 
                 auto checkpoint_points = util::copy_points(*output_schema->data(), &checkpoint_builder);
@@ -210,7 +214,7 @@ int main(int argc, char* argv[]) {
                 hash.mutable_data()->Mutate(3, input_hash[3]);
                 hash.mutable_data()->Mutate(4, input_hash[4]);
                 
-                auto checkpoint_output = SYKSchema::CreateOutput(checkpoint_builder, checkpoint_builder.CreateVector(checkpoint_points));
+                auto checkpoint_output = SYKSchema::CreateOutput(checkpoint_builder, total_compute, checkpoint_builder.CreateVector(checkpoint_points));
                 auto checkpoint = SYKSchema::CreateCheckpoint(checkpoint_builder, &hash, checkpoint_output);
 
                 checkpoint_builder.Finish(checkpoint);
@@ -222,11 +226,12 @@ int main(int argc, char* argv[]) {
                 last_checkpoint = std::chrono::steady_clock::now();
             }
         }
+        total_compute += std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - last_checkpoint).count();
     }
 
     // ====== Dump Output ======
     
-    auto output = SYKSchema::CreateOutput(output_builder, output_builder.CreateVector(points));
+    auto output = SYKSchema::CreateOutput(output_builder, total_compute, output_builder.CreateVector(points));
     output_builder.Finish(output);
     output_file.write(reinterpret_cast<char*>(output_builder.GetBufferPointer()), output_builder.GetSize());
     if(output_file.fail()) {

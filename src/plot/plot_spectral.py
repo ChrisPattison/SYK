@@ -10,6 +10,8 @@ from SYKSchema.Output import Output
 output = Output.GetRootAsOutput(bytearray(open(sys.argv[1], 'rb').read()), 0)
 assert(not output.DataIsNone())
 
+print('Total Compute: {}s'.format(output.TotalCompute()))
+
 @njit(nogil=True, parallel=True)
 def spectral_form_factor(time, data):
     g = np.zeros_like(time)

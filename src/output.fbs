@@ -6,6 +6,7 @@ table Point {
 }
 
 table Output {
+    total_compute: int64;
     data: [Point];
 }
 
