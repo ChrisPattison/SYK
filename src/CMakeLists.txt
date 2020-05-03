@@ -8,7 +8,7 @@ set(CMAKE_CUDA_STANDARD 14)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
-set(CMAKE_CXX_FLAGS "-march=native -mtune=native -pedantic-errors -fopenmp")
+set(CMAKE_CXX_FLAGS "-march=${TARGET_ARCH} -mtune=${TARGET_ARCH} -pedantic-errors -fopenmp")
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
