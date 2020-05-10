@@ -1,4 +1,4 @@
-#include "gpu_diagonalize.hpp"
+#include "cuda_diagonalize.hpp"
 
 #include <cassert>
 #include <algorithm>
