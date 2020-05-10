@@ -43,7 +43,7 @@ build_flatbuffers("${flatbuff_files}" "" gen_flatbuff "" "${CMAKE_CURRENT_BINARY
 
 # ================= Bench =================
 
-add_executable(bench bench.cpp gpu_diagonalize.cu)
+add_executable(bench bench.cpp cuda_diagonalize.cu)
 
 if(OpenMP_CXX_FOUND)
     target_compile_options(bench PUBLIC ${OpenMP_CXX_FLAGS})
@@ -58,7 +58,7 @@ target_link_libraries(bench PRIVATE CUDA::cusolver)
 
 # ================= Spectral =================
 
-add_executable(spectral spectral.cpp gpu_diagonalize.cu)
+add_executable(spectral spectral.cpp cuda_diagonalize.cu)
 
 if(OpenMP_CXX_FOUND)
     target_compile_options(spectral PUBLIC ${OpenMP_CXX_FLAGS})
@@ -73,7 +73,7 @@ target_link_libraries(spectral PRIVATE CUDA::cusolver)
 
 # ================= Mixer =================
 
-add_executable(mixer mixer.cpp gpu_diagonalize.cu)
+add_executable(mixer mixer.cpp cuda_diagonalize.cu)
 
 if(OpenMP_CXX_FOUND)
     target_compile_options(mixer PUBLIC ${OpenMP_CXX_FLAGS})

@@ -1,5 +1,6 @@
 #include "syk.hpp"
 #include "diagonalize.hpp"
+#include "magma_diagaonalize.hpp"
 #include "util.hpp"
 #include "boost_util.hpp"
 #include "random_matrix.hpp"
@@ -164,6 +165,8 @@ int main(int argc, char* argv[]) {
         auto rng = std::mt19937_64(rng_seed + omp_get_thread_num());
         util::warmup_rng(&rng);
 
+        syk::MagmaEigenValSolver eigenval_solver;
+
         for(int sample_i = points.size(); sample_i < trials; ++sample_i) {
             // Sample Hamiltonian
             std::vector<double> x_vals(hamiltonian_set.size());
@@ -180,7 +183,7 @@ int main(int argc, char* argv[]) {
             // Diagonalize
             std::vector<double> eigenvals;
             try {
-                eigenvals = syk::gpu_hamiltonian_eigenvals(hamiltonian);
+                eigenvals = eigenval_solver.eigenvals(hamiltonian);
             }catch(const std::exception& e) {
                 std::cerr << "Failure during diagonalization: " << e.what() << std::endl;
                 throw;

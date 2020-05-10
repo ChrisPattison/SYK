@@ -1,9 +1,8 @@
 #pragma once
 #include "syk.hpp"
 #include "syk_types.hpp"
-#include "gpu_diagonalize.hpp"
+#include "cuda_diagonalize.hpp"
 
-#include <magma.h>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
 #include <exception>
@@ -104,46 +103,6 @@ std::vector<double> gpu_hamiltonian_eigenvals(const MatrixType& hamiltonian) {
     std::vector<double> eigenvals;
     #pragma omp critical
     eigenvals = solver.eigenvals(hamiltonian);
-    return eigenvals;
-}
-
-std::vector<double> magma_hamiltonian_eigenvals(MatrixType& hamiltonian) {
-    int size = hamiltonian.diagonal().size();
-    int num_eigenvals_found, info;
-    std::vector<double> eigenvals(size, std::numeric_limits<double>::quiet_NaN());
-
-    std::vector<magmaDoubleComplex> work(1);
-    std::vector<double> rwork(7*size);
-    std::vector<magma_int_t> iwork(5*size);
-
-    static_assert(sizeof(std::complex<double>) == sizeof(magmaDoubleComplex));
-
-    magma_zheevx(
-        magma_vec_t::MagmaNoVec, magma_range_t::MagmaRangeAll, magma_uplo_t::MagmaLower, size, 
-        reinterpret_cast<magmaDoubleComplex*>(hamiltonian.data()), hamiltonian.cols(),
-        0.0, 0.0,
-        -1, -1, -1.0, &num_eigenvals_found,
-        eigenvals.data(), 
-        nullptr, 1,
-        work.data(), -1,
-        rwork.data(), iwork.data(),
-        nullptr,
-        &info);
-
-    work.resize(static_cast<std::size_t>(*reinterpret_cast<double*>(work.data())));
-
-    magma_zheevx(
-        magma_vec_t::MagmaNoVec, magma_range_t::MagmaRangeAll, magma_uplo_t::MagmaLower, size, 
-        reinterpret_cast<magmaDoubleComplex*>(hamiltonian.data()), hamiltonian.cols(),
-        0.0, 0.0,
-        -1, -1, -1.0, &num_eigenvals_found,
-        eigenvals.data(), 
-        nullptr, 1,
-        work.data(), work.size(),
-        rwork.data(), iwork.data(),
-        nullptr,
-        &info);
-
     return eigenvals;
 }
 }
