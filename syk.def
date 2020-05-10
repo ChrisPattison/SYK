@@ -22,7 +22,7 @@ cd /src
 mkdir build
 cd build
 
-TARGET_ARCH=${TARGET_ARCH:-native}
+TARGET_ARCH=${TARGET_ARCH:-haswell}
 PREFIX=
 CMAKE=/usr/local/bin/cmake
 CUDADIR=/usr/local/cuda-10.2
