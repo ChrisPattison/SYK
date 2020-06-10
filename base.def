@@ -88,7 +88,7 @@ popd
 
 python3 -m venv /base/python
 source /base/python/bin/activate
-pip install matplotlib numpy scipy pandas flatbuffers numba
+pip install matplotlib numpy scipy pandas flatbuffers numba cython
 deactivate
 
 # ========= Flat Buffers =======

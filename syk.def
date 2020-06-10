@@ -37,3 +37,8 @@ ${PREFIX} make install
 
 cp -r flatbuff/SYKSchema /base
 chmod -R 0775 /base/SYKSchema
+
+source /base/python/bin/activate
+cd /src/plot
+pip install -v .
+deactivate
