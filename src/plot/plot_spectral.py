@@ -4,8 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np 
 import pandas as pd 
 import flatbuffers
-import time as ti
-from spectral_form_factor import spectral_form_factor
+from numba import njit, prange
 from SYKSchema.Output import Output
 
 output = Output.GetRootAsOutput(bytearray(open(sys.argv[1], 'rb').read()), 0)
@@ -13,23 +12,24 @@ assert(not output.DataIsNone())
 
 print('Total Compute: {}s'.format(output.TotalCompute()))
 
-time = np.geomspace(1e-1, 1e6, 1000, dtype=np.dtype('d'))
+@njit(nogil=True, parallel=True)
+def spectral_form_factor(time, data):
+    g = np.zeros_like(time)
+    for i in prange(len(time)):
+        g[i] = np.sum(np.exp(data * time[i]))
+    g = np.conj(g) * g
+    return g
 
-time_start = ti.time()
-# 10K x 1024 x 1000
-stacked_eigenvals = []
+time = np.geomspace(1e-1, 1e6, 4000, dtype=np.dtype('c16'))*1.0j
+
+spectral = np.zeros_like(time)
+
 for point in (output.Data(i) for i in range(output.DataLength())):
-    stacked_eigenvals.append(point.EigenvalsAsNumpy())
-# Sample index is axis 0
-# Eigenval index is axis 1
-stacked_eigenvals = np.concatenate(stacked_eigenvals, axis=0)
-spectral = spectral_form_factor(time, stacked_eigenvals)
+    spectral += spectral_form_factor(time, point.EigenvalsAsNumpy())
 
-print('Spectral form factor done in {}s'.format(ti.time() - time_start))
-
-spectral = spectral
+spectral = spectral / (output.DataLength()**2)
 plt.yscale('log')
 plt.xscale('log')
-plt.plot(time, spectral)
+plt.plot(np.imag(time), np.real(spectral))
 plt.savefig('plot.pdf')
 
