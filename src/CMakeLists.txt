@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 set(CMAKE_CXX_FLAGS "-march=${TARGET_ARCH} -mtune=${TARGET_ARCH} -pedantic-errors -fopenmp")
+add_definitions(-DMKL_ILP64)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)

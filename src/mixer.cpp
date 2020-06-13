@@ -62,7 +62,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    unsigned int checkpoint_period = std::numeric_limits<unsigned long>::max();
+    unsigned long checkpoint_period = std::numeric_limits<unsigned long>::max();
     if(checkpoints_enabled) {
         try {
             checkpoint_period = std::stoul(std::string(argv[6]));

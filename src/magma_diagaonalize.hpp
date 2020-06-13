@@ -15,8 +15,8 @@ public:
     MagmaEigenValSolver& operator=(const MagmaEigenValSolver&) = delete;
 
     std::vector<double> eigenvals(MatrixType& matrix) {
-        int size = matrix.diagonal().size();
-        int num_eigenvals_found, info;
+        magma_int_t size = matrix.diagonal().size();
+        magma_int_t num_eigenvals_found, info;
         std::vector<double> eigenvals(size, std::numeric_limits<double>::quiet_NaN());
 
         std::vector<magmaDoubleComplex> work(1);
