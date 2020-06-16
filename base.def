@@ -18,6 +18,7 @@ export PYTHONPATH="${PYTHONPATH}:/base"
 %labels
 
 %post
+dnf install -y dnf-plugins-core
 dnf install -y gcc-c++ gcc-gfortran
 dnf install -y epel-release
 dnf install -y git wget bc
