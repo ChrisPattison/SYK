@@ -49,7 +49,7 @@ Pauli operator*(Pauli a, Pauli b) {
 /** Utility class for construction Majorana fermion representations
  */
 struct FermionRep {
-    using PauliString = std::array<Pauli, 40>;
+    using PauliString = std::array<Pauli, 20>;
     using PauliMatrix = Eigen::Matrix<std::complex<short>, 2, 2>;
     int num_fermions_;
     
@@ -89,10 +89,10 @@ struct FermionRep {
         return repp(a.m) * repp(a.s);
     }
 
-    Pauli PauliI() { return Pauli {AbstractPauli::I, Sign::P}; }
-    Pauli PauliX() { return Pauli {AbstractPauli::X, Sign::P}; }
-    Pauli PauliY() { return Pauli {AbstractPauli::Y, Sign::P}; }
-    Pauli PauliZ() { return Pauli {AbstractPauli::Z, Sign::P}; }
+    Pauli PauliI() const { return Pauli {AbstractPauli::I, Sign::P}; }
+    Pauli PauliX() const { return Pauli {AbstractPauli::X, Sign::P}; }
+    Pauli PauliY() const { return Pauli {AbstractPauli::Y, Sign::P}; }
+    Pauli PauliZ() const { return Pauli {AbstractPauli::Z, Sign::P}; }
 
     Pauli get_pauli_factor(int a, int qubit_index) {
         assert(0 <= a && a < num_fermions_);
@@ -141,7 +141,7 @@ struct FermionRep {
         std::complex<short> acc(1,0);
         int max_level = num_fermions_/2 - 1;
 
-        #pragma GCC unroll 8
+        #pragma GCC unroll 4
         for(int level = 0; level <= max_level; ++level) {
             int mask = 1 << level;
             int sub_i = (i & mask) >> level;
@@ -151,15 +151,38 @@ struct FermionRep {
         }
         return zero_one_short_to_double(acc);
     }
+
+    /** Returns the parity operator (gamma_*) for the Clifford algebra repp
+     */
+    PauliString gamma_star() const {
+        PauliString pstring;
+        pstring.fill(PauliZ());
+        return pstring;
+    }
 };
 
+/** Return all numbers of even hamming weight below size
+ */
+std::vector<std::uint32_t> hamming_weight(std::uint32_t size, bool odd = false) {
+
+    std::vector<std::uint32_t> idx;
+    idx.reserve(size/2);
+    for (std::uint32_t i = 0; i < size; ++i) {
+        if (static_cast<bool>(__builtin_popcount(i) % 2) == odd) {
+            idx.push_back(i);
+        }
+    }
+
+    return idx;
+}
+
 /** Generate an SYK Hamiltonian
+ * Returns only a single parity sector
  */
 template<typename rng_type>
 __attribute__((optimize("fast-math")))
 MatrixType syk_hamiltonian(rng_type* rng, int N, double J) {
     auto hilbert_space_size = (1 << (N+1)/2);
-    MatrixType hamiltonian = MatrixType::Zero(hilbert_space_size, hilbert_space_size);
     auto repp = FermionRep(N);
 
     auto distr = std::normal_distribution<double>(0, J/std::pow(static_cast<double>(N), 1.5));
@@ -176,15 +199,19 @@ MatrixType syk_hamiltonian(rng_type* rng, int N, double J) {
         }
     }
 
+    // The parity projection (1 + gamma_*) removes all rows/columns with odd hamming weight
+    auto even_weight = hamming_weight(hilbert_space_size);
+    MatrixType hamiltonian = MatrixType::Zero(even_weight.size(), even_weight.size());
+
     #pragma omp parallel for
-    for(int j = 0; j < hamiltonian.rows(); ++j) {
-        for(int i = 0; i < hamiltonian.cols(); ++i) {
+    for(int j = 0; j < even_weight.size(); ++j) {
+        for(int i = 0; i < even_weight.size(); ++i) {
             double matrix_element_re = 0.0;
             double matrix_element_im = 0.0;
             auto num_interactions = interactions.size();
 
             for(int k = 0; k < num_interactions; ++k) {
-                auto single_element = repp.get_matrix_element(i, j, interactions[k].first);
+                auto single_element = repp.get_matrix_element(even_weight[i], even_weight[j], interactions[k].first);
                 matrix_element_re += interactions[k].second * single_element.real();
                 matrix_element_im += interactions[k].second * single_element.imag();
             }
