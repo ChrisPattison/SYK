@@ -1,6 +1,6 @@
 #include "syk.hpp"
 #include "diagonalize.hpp"
-#include "magma_diagaonalize.hpp"
+#include "magma_diagonalize.hpp"
 #include "util.hpp"
 #include "boost_util.hpp"
 #include "random_matrix.hpp"
