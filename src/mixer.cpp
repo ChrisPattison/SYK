@@ -167,6 +167,9 @@ int main(int argc, char* argv[]) {
 
         syk::MagmaEigenValSolver eigenval_solver;
 
+        #pragma omp single
+        std::cerr << "Using " << eigenval_solver.num_gpus() << " GPUs" << std::endl;
+
         for(int sample_i = points.size(); sample_i < trials; ++sample_i) {
             // Sample Hamiltonian
             std::vector<double> x_vals(hamiltonian_set.size());
@@ -183,7 +186,7 @@ int main(int argc, char* argv[]) {
             // Diagonalize
             std::vector<double> eigenvals;
             try {
-                eigenvals = eigenval_solver.eigenvals(hamiltonian);
+                eigenvals = eigenval_solver.eigenvals_2stage(hamiltonian);
             }catch(const std::exception& e) {
                 std::cerr << "Failure during diagonalization: " << e.what() << std::endl;
                 throw;
