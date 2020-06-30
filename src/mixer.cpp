@@ -37,6 +37,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+#if DIAG_SINGLE_PRECISION
+    std::cerr << "WARNING: Built with FP32 diagonalization" << std::endl;
+#endif
+
     auto infile_path = fs::path(argv[1]);
     auto outfile_path = fs::path(argv[2]);
 
