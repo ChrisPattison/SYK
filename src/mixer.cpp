@@ -175,6 +175,8 @@ int main(int argc, char* argv[]) {
         std::cerr << "Using " << eigenval_solver.num_gpus() << " GPUs" << std::endl;
 
         for(int sample_i = points.size(); sample_i < trials; ++sample_i) {
+            #pragma omp critical
+            std::cerr << "Sample #: " << sample_i << std::endl;
             // Sample Hamiltonian
             std::vector<double> x_vals(hamiltonian_set.size());
             std::generate(x_vals.begin()+1, x_vals.end(), [&]() { return std::normal_distribution(0.0, 1.0)(rng) * distr_width; });
