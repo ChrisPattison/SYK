@@ -13,7 +13,12 @@ export SCRIPT_PATH=/src
 export PATH=${PATH}:${SCRIPT_PATH}/build
 export PYTHON_PATH=${PYTHON_PATH}:/base
 source /base/python/bin/activate
-export MAGMA_NUM_GPUS=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
+if which nvidia-smi
+then
+    export MAGMA_NUM_GPUS=$(nvidia-smi --query-gpu=name --format=csv,noheader | wc -l)
+else
+    export MAGMA_NUM_GPUS=0
+fi
 
 %labels
 
