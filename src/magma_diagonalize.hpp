@@ -4,6 +4,7 @@
 #include <complex>
 #include <algorithm>
 #include <type_traits>
+#include <string>
 
 namespace syk {
 
@@ -46,6 +47,13 @@ public:
 
     MagmaEigenValSolver& operator=(const MagmaEigenValSolver&) = delete;
 
+    void guard_error(magma_int_t info) {
+        if(info != MAGMA_SUCCESS) { 
+            std::string err = "Magma error std::itoa(info)";
+            throw std::runtime_error(err + ". " + magma_strerror(info));
+        }
+    }
+
     std::vector<double> eigenvals(MatrixType& matrix) {
         magma_int_t ngpu = num_gpus();
         magma_int_t size = matrix.diagonal().size();
@@ -69,7 +77,7 @@ public:
             rwork.data(), -1,
             iwork.data(), -1,
             &info);
-        if(info != MAGMA_SUCCESS) { throw std::runtime_error(magma_strerror(info)); }
+        guard_error(info);
 
         work.resize(static_cast<std::size_t>(*reinterpret_cast<float_t*>(work.data())));
         rwork.resize(static_cast<std::size_t>(rwork[0]));
@@ -84,7 +92,7 @@ public:
             rwork.data(), rwork.size(),
             iwork.data(), iwork.size(),
             &info);
-        if(info != MAGMA_SUCCESS) { throw std::runtime_error(magma_strerror(info)); }
+        guard_error(info);
 
         return vector_from_working_precision(&eigenvals);
     }
@@ -114,7 +122,7 @@ public:
             rwork.data(), -1,
             iwork.data(), -1,
             &info);
-        if(info != MAGMA_SUCCESS) { throw std::runtime_error(magma_strerror(info)); }
+        guard_error(info);
 
         work.resize(static_cast<std::size_t>(*reinterpret_cast<float_t*>(work.data())));
         rwork.resize(static_cast<std::size_t>(rwork[0]));
@@ -131,7 +139,7 @@ public:
             rwork.data(), rwork.size(),
             iwork.data(), iwork.size(),
             &info);
-        if(info != MAGMA_SUCCESS) { throw std::runtime_error(magma_strerror(info)); }
+        guard_error(info);
 
         return vector_from_working_precision(&eigenvals);
     }
