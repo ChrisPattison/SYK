@@ -5,7 +5,9 @@
 ### GPUs: number of GPUs
 
 In syk.def set the environment variable:
+
     MAGMA_NUM_GPUS
+
 [CP: "at runtime" - or at build time]
 If not explicitly set, the image will try to run nvidia-smi to determine how many GPUs are available.  
 If it cannot run the command successfully, the build will set MAGMA_NUM_GPUS to zero [what is the result]
@@ -15,6 +17,7 @@ If it cannot run the command successfully, the build will set MAGMA_NUM_GPUS to 
 Consumer GPUs (e.g. Pascal? which the SITP machine has) are only licensed for single precision floating point.
 
 In syk.def uncomment:
+
     -DDIAG_SINGLE_PRECISION=ON
 
 When built with single precision it will print a warning on startup:
@@ -58,6 +61,18 @@ I had originally intended to allow checkpointing in the middle of the diagonaliz
 ### Plot
 
 Example:
+
     singularity exec syk.sif python src/plot/plot_spectral.py output.4096.bin
 
-####
+### Building the singularity container
+
+### On a Mac
+
+1. vagrant init singularityware/singularity-2.4
+1. vagrant up
+1. vagrant ssh
+
+1. git clone
+1. cd  repo
+1. make [ Will make base.sif and syk.sif ]
+
