@@ -49,7 +49,7 @@ public:
 
     void guard_error(magma_int_t info) {
         if(info != MAGMA_SUCCESS) { 
-            std::string err = "Magma error " + std::itoa(info);
+            std::string err = "Magma error " + std::to_string(info);
             throw std::runtime_error(err + ". " + magma_strerror(info));
         }
     }
