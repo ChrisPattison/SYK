@@ -52,7 +52,7 @@ distr_width: see num_hamiltonians for gen_ham
 checkpoint_file: optional, if supplied it will write to the checkpoint file every checkpoint_period seconds. 
 If already present it will compare a hash of the input_file against what checkpoint_file used.
 
---nv turns on the CUDA support for singularity. Magma has a CPU fallback but it's broken in this container at the moment. There's also some other diagonalization (CPU and GPU) implementations that you can switch to in the source if you want.
+--nv turns on the CUDA support for singularity. This is necessary to run the GPU diagonalization. There's also some other diagonalization (CPU and GPU) implementations that you can switch to in the source if you want although we do not automatically fall back to them.
 The 4096 in the output file name isn't special, but the plotting script uses it to get a nice name for the legend.
 The last two arguments are optional: If they are supplied, it will checkpoint after the supplied number of seconds have elapsed. If you restart, it will first check if the checkpoint is present and load from it if so. 
 
