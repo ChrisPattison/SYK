@@ -14,7 +14,8 @@ If it cannot run the command successfully, the build will set MAGMA_NUM_GPUS to 
 
 ### GPUs: Consumer vs. professional
 
-Consumer GPUs (e.g. Pascal? which the SITP machine has) are only licensed for single precision floating point.
+Consumer GPUs (e.g. Titan which the SITP machine has) have extremely limited FP64 support.
+For testing purposes we can use FP32 on these GPUs, but we expect FP64 to be necessary for data collection runs.
 
 In syk.def uncomment:
 
