@@ -1,4 +1,5 @@
 #include "syk.hpp"
+#include "heisenberg.hpp"
 #include "random_matrix.hpp"
 #include "input_generated.h"
 #include "serdes.hpp"
@@ -13,14 +14,15 @@
 
 namespace fs = std::filesystem;
 
-enum class HamType { syk, gue, goe };
+enum class HamType { syk, gue, goe, heis };
 
 void print_args() {
     std::cerr
-        << "gen_ham <output_file> <num_hamiltonians> <ensemble [syk/gue/goe]> <size>" << std::endl
+        << "gen_ham <output_file> <num_hamiltonians> <ensemble [syk/gue/goe/heis]> <size>" << std::endl
         << "Restrictions on size:" << std::endl
         << "SYK: # of fermions" << std::endl
-        << "GUE/GOE: Vector space dimension" << std::endl;
+        << "GUE/GOE: Vector space dimension" << std::endl
+        << "Random Field Heisenberg: # of qubits" << std::endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -45,12 +47,13 @@ int main(int argc, char* argv[]) {
 
     auto ensemble_arg = std::string(argv[3]);
     HamType ham_type;
-    if      (ensemble_arg == "syk") { ham_type = HamType::syk; }
-    else if (ensemble_arg == "gue") { ham_type = HamType::gue; }
-    else if (ensemble_arg == "goe") { ham_type = HamType::goe; }
+    if      (ensemble_arg == "syk")  { ham_type = HamType::syk; }
+    else if (ensemble_arg == "gue")  { ham_type = HamType::gue; }
+    else if (ensemble_arg == "goe")  { ham_type = HamType::goe; }
+    else if (ensemble_arg == "heis") { ham_type = HamType::heis; }
     else {
         print_args();
-        std::cerr << "Invalid ensemble type. Valid types are <syk/gue/goe>" << std::endl;
+        std::cerr << "Invalid ensemble type. Valid types are <syk/gue/goe/heis>" << std::endl;
         return 1;
     }
 
@@ -76,9 +79,10 @@ int main(int argc, char* argv[]) {
     util::warmup_rng(&rng);
 
     switch(ham_type) {
-        case HamType::gue: std::generate(matrices.begin(), matrices.end(), [&]() { return syk::RandomGUE(&rng, size); }); break;
-        case HamType::goe: std::generate(matrices.begin(), matrices.end(), [&]() { return syk::RandomGOE(&rng, size); }); break;
-        case HamType::syk: std::generate(matrices.begin(), matrices.end(), [&]() { return syk::syk_hamiltonian(&rng, size, 1.0); }); break;
+        case HamType::gue:  std::generate(matrices.begin(), matrices.end(), [&]() { return syk::RandomGUE(&rng, size); }); break;
+        case HamType::goe:  std::generate(matrices.begin(), matrices.end(), [&]() { return syk::RandomGOE(&rng, size); }); break;
+        case HamType::syk:  std::generate(matrices.begin(), matrices.end(), [&]() { return syk::syk_hamiltonian(&rng, size, 1.0); }); break;
+        case HamType::heis: std::generate(matrices.begin(), matrices.end(), [&]() { return syk::random_field_heisenberg(&rng, size, 0.5); }); break;
     }
 
     // ====== Output Data =====
