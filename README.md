@@ -66,13 +66,13 @@ Example:
 
 ## Building the singularity container
 
-### On a Mac
+### On a Mac using Vagrant
 
-    1. vagrant init singularityware/singularity-2.4
-    1. vagrant up
-    1. vagrant ssh
+1. `vagrant init singularityware/singularity-2.4`
+1. `vagrant up`
+1. `vagrant ssh`
 
-    1. git clone
-    1. cd  repo
-    1. make [ Will make base.sif and syk.sif ]
+1. `git clone <SYK repo>`
+1. `cd  repo`
+1. `make` [ Will make base.sif and syk.sif ]
 
