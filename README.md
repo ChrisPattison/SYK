@@ -64,15 +64,15 @@ Example:
 
     singularity exec syk.sif python src/plot/plot_spectral.py output.4096.bin
 
-### Building the singularity container
+## Building the singularity container
 
 ### On a Mac
 
-1. vagrant init singularityware/singularity-2.4
-1. vagrant up
-1. vagrant ssh
+    1. vagrant init singularityware/singularity-2.4
+    1. vagrant up
+    1. vagrant ssh
 
-1. git clone
-1. cd  repo
-1. make [ Will make base.sif and syk.sif ]
+    1. git clone
+    1. cd  repo
+    1. make [ Will make base.sif and syk.sif ]
 
