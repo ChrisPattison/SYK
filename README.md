@@ -4,12 +4,12 @@
 
 ### GPUs: number of GPUs
 
-In syk.def set the environment variable:
+Magma uses MAGMA_NUM_GPUS to determine the number of GPUs to use
+This can changed at runtime by setting SINGULARITYENV_MAGMA_NUM_GPUS in the host environment before executing the container
 
-    MAGMA_NUM_GPUS
+    SINGULARITYENV_MAGMA_NUM_GPUS=2 singularity exec ...
 
-[CP: "at runtime" - or at build time]
-If not explicitly set, the image will try to run nvidia-smi to determine how many GPUs are available.  
+if not explicitly set, the image will try to run nvidia-smi to determine how many GPUs are available.  
 If it cannot run the command successfully, the build will set MAGMA_NUM_GPUS to zero [what is the result]
 
 ### GPUs: Consumer vs. professional
