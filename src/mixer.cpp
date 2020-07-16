@@ -169,11 +169,10 @@ int main(int argc, char* argv[]) {
         auto rng = std::mt19937_64(rng_seed + omp_get_thread_num());
         util::warmup_rng(&rng);
 
-        syk::MagmaEigenValSolver eigenval_solver;
+        std::cerr << "Using CPUs" << std::endl;
 
-        #pragma omp single
-        std::cerr << "Using " << eigenval_solver.num_gpus() << " GPUs" << std::endl;
-
+        // #pragma omp single
+        #pragma omp parallel for
         for(int sample_i = points.size(); sample_i < trials; ++sample_i) {
             #pragma omp critical
             std::cerr << "Sample #: " << sample_i << std::endl;
@@ -183,7 +182,7 @@ int main(int argc, char* argv[]) {
             x_vals[0] = 1;
 
             double sum_squares = util::transform_reduce(x_vals.begin()+1, x_vals.end(), 0.0, std::plus<>(), [](const auto& v) { return v * v;} );
-            double norm = 1.0/std::sqrt(1.0 + sum_squares);
+            double norm = 1.0;///std::sqrt(1.0 + sum_squares);
             std::transform(x_vals.begin(), x_vals.end(), x_vals.begin(), [&](const auto& v) { return v * norm;});
 
             syk::MatrixType hamiltonian = util::transform_reduce(hamiltonian_set.begin(), hamiltonian_set.end(), x_vals.begin(), 
@@ -192,7 +191,7 @@ int main(int argc, char* argv[]) {
             // Diagonalize
             std::vector<double> eigenvals;
             try {
-                eigenvals = eigenval_solver.eigenvals_2stage(hamiltonian);
+                eigenvals = syk::cpu_hamiltonian_eigenvals(hamiltonian);
             }catch(const std::exception& e) {
                 std::cerr << "Failure during diagonalization: " << e.what() << std::endl;
                 throw;
@@ -205,37 +204,6 @@ int main(int argc, char* argv[]) {
                 auto eigenval_vector = output_builder.CreateVector(eigenvals);
                 auto point = SYKSchema::CreatePoint(output_builder, params_vector, eigenval_vector);
                 points.push_back(point);
-            }
-            // Checkpoint
-            auto seconds_elapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - last_checkpoint).count();
-            if(checkpoints_enabled && seconds_elapsed > checkpoint_period) {
-                total_compute += seconds_elapsed;
-
-                auto checkpoint_file = std::fstream(checkpoint_path, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc | std::ios_base::ate);
-                flatbuffers::FlatBufferBuilder checkpoint_builder(output_buffer_reservation);
-                
-                // TODO: This probably leaks some memory
-                output_builder.Finish(SYKSchema::CreateOutput(output_builder, total_compute, output_builder.CreateVector(points)));
-                auto output_schema = SYKSchema::GetOutput(output_builder.GetBufferPointer());
-
-                auto checkpoint_points = util::copy_points(*output_schema->data(), &checkpoint_builder);
-                auto hash = SYKSchema::Hash();
-                hash.mutable_data()->Mutate(0, input_hash[0]);
-                hash.mutable_data()->Mutate(1, input_hash[1]);
-                hash.mutable_data()->Mutate(2, input_hash[2]);
-                hash.mutable_data()->Mutate(3, input_hash[3]);
-                hash.mutable_data()->Mutate(4, input_hash[4]);
-                
-                auto checkpoint_output = SYKSchema::CreateOutput(checkpoint_builder, total_compute, checkpoint_builder.CreateVector(checkpoint_points));
-                auto checkpoint = SYKSchema::CreateCheckpoint(checkpoint_builder, &hash, checkpoint_output);
-
-                checkpoint_builder.Finish(checkpoint);
-                checkpoint_file.write(reinterpret_cast<char*>(checkpoint_builder.GetBufferPointer()), checkpoint_builder.GetSize());
-                if(checkpoint_file.fail()) {
-                    std::cerr << "Failed to write checkpoint to disk" << std::endl;
-                    return 1;
-                }
-                last_checkpoint = std::chrono::steady_clock::now();
             }
         }
         total_compute += std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now() - last_checkpoint).count();
