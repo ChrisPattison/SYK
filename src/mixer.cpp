@@ -175,11 +175,13 @@ int main(int argc, char* argv[]) {
         #pragma omp parallel for
         for(int sample_i = points.size(); sample_i < trials; ++sample_i) {
             #pragma omp critical
-            std::cerr << "Sample #: " << sample_i << std::endl;
-            // Sample Hamiltonian
-            std::vector<double> x_vals(hamiltonian_set.size());
-            std::generate(x_vals.begin()+1, x_vals.end(), [&]() { return std::normal_distribution(0.0, 1.0)(rng) * distr_width; });
-            x_vals[0] = 1;
+            {
+                std::cerr << "Sample #: " << sample_i << std::endl;
+                // Sample Hamiltonian
+                std::vector<double> x_vals(hamiltonian_set.size());
+                std::generate(x_vals.begin()+1, x_vals.end(), [&]() { return std::normal_distribution(0.0, 1.0)(rng) * distr_width; });
+                x_vals[0] = 1;
+            }
 
             double sum_squares = util::transform_reduce(x_vals.begin()+1, x_vals.end(), 0.0, std::plus<>(), [](const auto& v) { return v * v;} );
             double norm = 1.0;///std::sqrt(1.0 + sum_squares);
