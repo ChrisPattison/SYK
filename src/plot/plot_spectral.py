@@ -14,7 +14,7 @@ from numba import njit, prange
 from SYKSchema.Output import Output
 from SYKSchema.Checkpoint import Checkpoint
 
-def get_ssf_from_file(filename, time):
+def get_ssf_from_file(filename, time, count = None):
     '''Attempt to read as output file and then as a checkpoint.
     Our buffers don't have identifiers for some reason so OutputBufferHasIdentifier always gives false.
     Fortunately, it blows up if we attempt to read it as Output and it's not.'''
@@ -24,16 +24,16 @@ def get_ssf_from_file(filename, time):
     try:
         output = Output.GetRootAsOutput(buffer, 0)
         assert(not output.DataIsNone())
-        spectral = spectral_form_factor(output, time)
+        spectral = spectral_form_factor(output, time, count = count)
     except:
         output = Checkpoint.GetRootAsCheckpoint(buffer, 0).Output()
         assert(not output.DataIsNone())
-        spectral = spectral_form_factor(output, time)
+        spectral = spectral_form_factor(output, time, count = count)
 
     return spectral
             
 
-def spectral_form_factor(output, time):
+def spectral_form_factor(output, time, count = None):
 
     print('Total Compute: {}s'.format(output.TotalCompute()))
 
@@ -41,18 +41,22 @@ def spectral_form_factor(output, time):
     def spectral_form_factor(time, data):
         g = np.zeros_like(time)
         for i in prange(len(time)):
-            g[i] = np.sum(np.exp(data * time[i]))
+            g[i] = np.mean(np.exp(data * time[i]))
         g = np.conj(g) * g
         return g
 
     spectral = np.zeros_like(time)
 
-    for point in (output.Data(i) for i in range(output.DataLength())):
+    num_points = output.DataLength()
+    num_points = num_points if count is None else min(num_points, count)
+
+    for i in range(num_points):
+        point = output.Data(i)
         spectral += spectral_form_factor(time, point.EigenvalsAsNumpy())
 
-    spectral = spectral / output.DataLength()
+    spectral = spectral / num_points
 
-    return spectral, output.DataLength()
+    return spectral, num_points
 
 def load_from_checkpoint(filename):
     checkpoint = Checkpoint.GetRootAsCheckpoint(bytearray(open(filename, 'rb').read()), 0)
