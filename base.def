@@ -19,6 +19,7 @@ export PYTHONPATH="${PYTHONPATH}:/base"
 
 %post
 dnf install -y dnf-plugins-core
+dnf config-manager --set-enabled PowerTools
 dnf install -y which
 dnf install -y gcc-c++ gcc-gfortran
 dnf install -y epel-release
@@ -28,6 +29,7 @@ dnf install -y make bzip2 autoconf automake libtool curl make unzip
 dnf install -y python3 python3-devel
 dnf install -y openssl openssl-devel
 dnf install -y boost boost-devel
+dnf install -y hdf5 hdf5-devel mpich mpich-devel
 
 # ========== CUDA Install ==========
 

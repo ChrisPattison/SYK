@@ -4,7 +4,12 @@
 #include "syk_types.hpp"
 #include "util.hpp"
 
+#include <H5Cpp.h>
+
+#include <type_traits>
 #include <complex>
+#include <exception>
+#include <string>
 
 namespace util {
 static_assert(!(syk::MatrixType::IsRowMajor));
@@ -67,5 +72,45 @@ std::vector<flatbuffers::Offset<SYKSchema::Point>> copy_points(const points_cont
         dest_points.push_back(output_point);
     }
     return dest_points;
+}
+
+/** Load Eigen matrix from HDF5 Group
+ */
+syk::MatrixType load_matrix_hdf5(H5::Group* group, std::string name) {
+    static_assert(std::is_same_v<syk::MatrixType::Scalar, std::complex<double> >);
+    static_assert(sizeof(std::complex<double>) == 16);
+
+    auto dataset = group->openDataSet(name);
+
+    // Read matrix size
+    auto dataspace = dataset.getSpace();
+    if(dataspace.getSimpleExtentNdims() != 3) {
+        throw std::runtime_error("Datset rank mismatch. Expected 3");
+    }
+
+    hsize_t dims[3];
+    dataspace.getSimpleExtentDims(dims);
+    if(dims[2] != 2) {
+        throw std::runtime_error("Dataset trailing dimension not 2 (Complex)");
+    }
+    
+    // Read matrix
+    // Opposite ordering of HDF5
+    syk::MatrixType matrix(dims[1], dims[0]);
+    dataset.read(reinterpret_cast<double*>(matrix.data()), H5::PredType::NATIVE_DOUBLE);
+
+    return matrix;
+}
+
+/** Store Eigen matrix into HDF5 Group
+ */
+void dump_matrix_hdf5(const syk::MatrixType& matrix, H5::Group* group, std::string name) {
+    static_assert(std::is_same_v<syk::MatrixType::Scalar, std::complex<double> >);
+    static_assert(sizeof(std::complex<double>) == 16);
+
+    // We're actually storing the transpose here since HDF5 is row-major and Eigen is col-major
+    hsize_t dataset_dims[3] =  {static_cast<hsize_t>(matrix.cols()), static_cast<hsize_t>(matrix.rows()), 2};
+    auto dataset = group->createDataSet(name, H5::PredType::INTEL_F64, H5::DataSpace(3, dataset_dims));
+    dataset.write(reinterpret_cast<const double*>(matrix.data()), H5::PredType::NATIVE_DOUBLE);
 }
 }

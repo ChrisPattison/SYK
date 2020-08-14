@@ -81,28 +81,19 @@ int main(int argc, char* argv[]) {
     std::array<std::uint32_t, 5> input_hash;
     try {
         // Buffer size
-        auto input_file = std::fstream(infile_path, std::ios_base::in | std::ios_base::binary);
-        auto num_bytes = util::get_stream_size(&input_file);
-
-        // Read buffer
-        std::vector<char> buf(num_bytes);
-        input_file.read(buf.data(), num_bytes);
-        if(input_file.fail()) { throw std::runtime_error("Unable to open file"); }
-
-        auto input_schema = SYKSchema::GetInput(buf.data());
-
-        // Compute checksum if applicable
-        if(checkpoints_enabled) {
-            input_hash = util::hash(buf);
+        auto input_file = H5::H5File(infile_path.c_str(), H5F_ACC_RDONLY);
+        if(!input_file.nameExists("hamiltonian")) {
+            throw std::runtime_error("/hamiltonian missing in HDF5 input file");
         }
-        
-        // Hamiltonian nullptr check
-        if(input_schema->hamiltonians() == nullptr) { throw std::runtime_error("Missing Hamiltonians in input file"); }
+
+        auto group = input_file.openGroup("hamiltonian");
+        auto num_attributes = group.getNumObjs();
 
         // Load matrices
-        for(auto matrix : *(input_schema->hamiltonians())) {
-            hamiltonian_set.push_back(util::load_matrix(*matrix));
+        for(unsigned int k = 0; k < num_attributes; ++k) {
+            hamiltonian_set.push_back(util::load_matrix_hdf5(&group, group.getObjnameByIdx(k)));
         }
+
         // Check number
         if(hamiltonian_set.size() == 0) { throw std::runtime_error("Found zero Hamiltonians"); }
 

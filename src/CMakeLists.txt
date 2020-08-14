@@ -20,6 +20,7 @@ find_package(Eigen3 REQUIRED)
 find_package(Boost REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 find_package(Magma REQUIRED)
+find_package(HDF5 REQUIRED COMPONENTS CXX)
 
 message("${Magma_ROOT}")
 message("${Magma_INCLUDE_DIR}")
@@ -82,11 +83,13 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 add_dependencies(mixer gen_flatbuff)
+target_include_directories(mixer PRIVATE ${HDF5_INCLUDE_DIRS})
 target_include_directories(mixer PRIVATE ${BOOST_INCLUDE_DIR})
 target_include_directories(mixer PRIVATE ${Magma_INCLUDE_DIR})
 target_include_directories(mixer PRIVATE ${FLATBUFFERS_INCLUDE_DIR})
 target_include_directories(mixer PRIVATE ${EIGEN3_INCLUDE_DIR})
 target_include_directories(mixer PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(mixer PRIVATE ${HDF5_LIBRARIES})
 target_link_libraries(mixer PRIVATE ${Magma_LIBRARIES})
 target_link_libraries(mixer PRIVATE CUDA::cusolver)
 
@@ -100,18 +103,21 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 add_dependencies(gen_ham gen_flatbuff)
+target_include_directories(gen_ham PRIVATE ${HDF5_INCLUDE_DIRS})
 target_include_directories(gen_ham PRIVATE ${FLATBUFFERS_INCLUDE_DIR})
 target_include_directories(gen_ham PRIVATE ${EIGEN3_INCLUDE_DIR})
 target_include_directories(gen_ham PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-
+target_link_libraries(gen_ham PRIVATE ${HDF5_LIBRARIES})
 # ================= Concat Ham =================
 
 add_executable(concat_ham concat_ham.cpp)
 
 add_dependencies(concat_ham gen_flatbuff)
+target_include_directories(concat_ham PRIVATE ${HDF5_INCLUDE_DIRS})
 target_include_directories(concat_ham PRIVATE ${FLATBUFFERS_INCLUDE_DIR})
 target_include_directories(concat_ham PRIVATE ${EIGEN3_INCLUDE_DIR})
 target_include_directories(concat_ham PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_link_libraries(concat_ham PRIVATE ${HDF5_LIBRARIES})
 
 # ================= Install ================
 
