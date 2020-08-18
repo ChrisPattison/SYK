@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(DECODER LANGUAGES CXX CUDA)
+project(DECODER LANGUAGES CXX C CUDA)
 find_package(CUDA 10.2 REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
@@ -21,9 +21,14 @@ find_package(Boost REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 find_package(Magma REQUIRED)
 find_package(HDF5 REQUIRED COMPONENTS CXX)
+find_package(MPI REQUIRED COMPONENTS C)
+find_package(ELPA REQUIRED)
 
 message("${Magma_ROOT}")
 message("${Magma_INCLUDE_DIR}")
+
+message("${ELPA_ROOT}")
+message("${ELPA_INCLUDE_DIR}")
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU") 
     link_libraries("stdc++fs")
@@ -82,16 +87,31 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(mixer PUBLIC ${OpenMP_CXX_LIBRARIES})
 endif()
 
+if(MPI_COMPILE_FLAGS)
+  set_target_properties(mixer PROPERTIES
+    COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+endif()
+
+if(MPI_LINK_FLAGS)
+  set_target_properties(mixer PROPERTIES
+    LINK_FLAGS "${MPI_LINK_FLAGS}")
+endif()
+
 add_dependencies(mixer gen_flatbuff)
 target_include_directories(mixer PRIVATE ${HDF5_INCLUDE_DIRS})
 target_include_directories(mixer PRIVATE ${BOOST_INCLUDE_DIR})
 target_include_directories(mixer PRIVATE ${Magma_INCLUDE_DIR})
+target_include_directories(mixer PRIVATE ${ELPA_INCLUDE_DIR})
 target_include_directories(mixer PRIVATE ${FLATBUFFERS_INCLUDE_DIR})
 target_include_directories(mixer PRIVATE ${EIGEN3_INCLUDE_DIR})
 target_include_directories(mixer PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(mixer PRIVATE ${MPI_INCLUDE_PATH})
+
 target_link_libraries(mixer PRIVATE ${HDF5_LIBRARIES})
 target_link_libraries(mixer PRIVATE ${Magma_LIBRARIES})
+target_link_libraries(mixer PRIVATE ${ELPA_LIBRARIES})
 target_link_libraries(mixer PRIVATE CUDA::cusolver)
+target_link_libraries(mixer PRIVATE ${MPI_LIBRARIES})
 
 # ================= Gen Ham =================
 

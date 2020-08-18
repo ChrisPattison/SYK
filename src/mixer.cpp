@@ -1,11 +1,13 @@
 #include "syk.hpp"
 #include "diagonalize.hpp"
+#include "elpa_wrapper.hpp"
 #include "magma_diagonalize.hpp"
 #include "util.hpp"
 #include "boost_util.hpp"
 #include "random_matrix.hpp"
 #include "filter.hpp"
 #include "serdes.hpp"
+#include "parallel.hpp"
 
 #include "input_generated.h"
 #include "output_generated.h"
@@ -36,6 +38,8 @@ int main(int argc, char* argv[]) {
         std::cerr << "mixer <input_file> <output_file> <samples> <distr_width> [checkpoint_file] [checkpoint_period (s)]" << std::endl;
         return 1;
     }
+
+    parallel::Mpi mpi;
 
 #if DIAG_SINGLE_PRECISION
     std::cerr << "WARNING: Built with FP32 diagonalization" << std::endl;
@@ -77,7 +81,7 @@ int main(int argc, char* argv[]) {
     }
 
 
-    std::list<syk::MatrixType> hamiltonian_set;
+    std::list<util::distributed_matrix<syk::MatrixType>> hamiltonian_set;
     std::array<std::uint32_t, 5> input_hash;
     try {
         // Buffer size
@@ -91,7 +95,8 @@ int main(int argc, char* argv[]) {
 
         // Load matrices
         for(unsigned int k = 0; k < num_attributes; ++k) {
-            hamiltonian_set.push_back(util::load_matrix_hdf5(&group, group.getObjnameByIdx(k)));
+            hamiltonian_set.push_back(util::load_block_cyclic_matrix_hdf5(&group, group.getObjnameByIdx(k),
+                mpi.size(), mpi.rank(), std::make_pair<>(64UL, 64UL)));
         }
 
         // Check number
@@ -99,7 +104,7 @@ int main(int argc, char* argv[]) {
 
         // Check sizes
         for(const auto& v : hamiltonian_set) { 
-            if(v.cols() != hamiltonian_set.front().cols() || v.rows() != hamiltonian_set.front().rows())
+            if(v.local_matrix.cols() != hamiltonian_set.front().local_matrix.cols() || v.local_matrix.rows() != hamiltonian_set.front().local_matrix.rows())
                 { throw std::runtime_error("Hamiltonian size mismatch"); }
         }
     }catch(const std::exception& e) {
@@ -121,7 +126,7 @@ int main(int argc, char* argv[]) {
     }
 
     // ====== Compute ======
-    std::size_t output_buffer_reservation = trials * hamiltonian_set.front().rows() * sizeof(syk::MatrixType::Scalar);
+    std::size_t output_buffer_reservation = trials * hamiltonian_set.front().size_y * sizeof(syk::MatrixType::Scalar);
     flatbuffers::FlatBufferBuilder output_builder(output_buffer_reservation);
     std::vector<flatbuffers::Offset<SYKSchema::Point>> points;
     points.reserve(trials);
@@ -160,18 +165,20 @@ int main(int argc, char* argv[]) {
         auto rng = std::mt19937_64(rng_seed + omp_get_thread_num());
         util::warmup_rng(&rng);
 
-        std::cerr << "Using CPUs" << std::endl;
+        if(mpi.is_root()) {
+            std::cerr << "Using " << mpi.size() << " MPI processes" << std::endl;
+        }
 
-        // #pragma omp single
-        #pragma omp parallel for
+        syk::ElpaEigenValSolver elpa_eigenval_solver;
+
         for(int sample_i = points.size(); sample_i < trials; ++sample_i) {
-            #pragma omp critical
-            std::cerr << "Sample #: " << sample_i << std::endl;
+            if(mpi.is_root()) {
+                std::cerr << "Sample #: " << sample_i << std::endl;
+            }
             
             // Sample Hamiltonian
             std::vector<double> x_vals(hamiltonian_set.size());
 
-            #pragma omp critical
             std::generate(x_vals.begin()+1, x_vals.end(), [&]() { return std::normal_distribution(0.0, 1.0)(rng) * distr_width; });
             x_vals[0] = 1;
 
@@ -179,13 +186,17 @@ int main(int argc, char* argv[]) {
             double norm = 1.0;///std::sqrt(1.0 + sum_squares);
             std::transform(x_vals.begin(), x_vals.end(), x_vals.begin(), [&](const auto& v) { return v * norm;});
 
-            syk::MatrixType hamiltonian = util::transform_reduce(hamiltonian_set.begin(), hamiltonian_set.end(), x_vals.begin(), 
-                syk::MatrixType::Zero(hamiltonian_set.front().rows(), hamiltonian_set.front().cols()).eval());
+            x_vals = mpi.Broadcast(x_vals);
+
+            util::distributed_matrix<syk::MatrixType> hamiltonian = hamiltonian_set.front();
+            hamiltonian.local_matrix = util::transform_reduce(hamiltonian_set.begin(), hamiltonian_set.end(), x_vals.begin(), 
+                syk::MatrixType::Zero(hamiltonian_set.front().local_matrix.rows(), hamiltonian_set.front().local_matrix.cols()).eval(), std::plus<>(), 
+                    [&](const auto& matrix, const auto& weight) { return matrix.local_matrix*weight; });
 
             // Diagonalize
             std::vector<double> eigenvals;
             try {
-                eigenvals = syk::cpu_hamiltonian_eigenvals(hamiltonian);
+                eigenvals = elpa_eigenval_solver.eigenvals(&hamiltonian, MPI_COMM_WORLD);
             }catch(const std::exception& e) {
                 std::cerr << "Failure during diagonalization: " << e.what() << std::endl;
                 throw;
@@ -205,12 +216,14 @@ int main(int argc, char* argv[]) {
 
     // ====== Dump Output ======
     
-    auto output = SYKSchema::CreateOutput(output_builder, total_compute, output_builder.CreateVector(points));
-    output_builder.Finish(output);
-    output_file.write(reinterpret_cast<char*>(output_builder.GetBufferPointer()), output_builder.GetSize());
-    if(output_file.fail()) {
-        std::cerr << "Failed to write output to disk" << std::endl;
-        return 1;
+    if(mpi.is_root()) {
+        auto output = SYKSchema::CreateOutput(output_builder, total_compute, output_builder.CreateVector(points));
+        output_builder.Finish(output);
+        output_file.write(reinterpret_cast<char*>(output_builder.GetBufferPointer()), output_builder.GetSize());
+        if(output_file.fail()) {
+            std::cerr << "Failed to write output to disk" << std::endl;
+            return 1;
+        }
     }
 
     return 0;
