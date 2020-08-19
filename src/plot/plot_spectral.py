@@ -52,7 +52,9 @@ def spectral_form_factor(output, time, count = None):
 
     for i in range(num_points):
         point = output.Data(i)
-        spectral += spectral_form_factor(time, point.EigenvalsAsNumpy())
+        # Previously the RMT normalization was missing 1/sqrt(L)
+        # spectral += spectral_form_factor(time, point.EigenvalsAsNumpy()/np.sqrt(point.EigenvalsAsNumpy().shape[0])) 
+        spectral += spectral_form_factor(time, point.EigenvalsAsNumpy()) 
 
     spectral = spectral / num_points
 
@@ -83,11 +85,12 @@ if __name__ == '__main__':
         print(f'Plotting {label}')
 
         timestart = ti.time()
-        spectral, points = get_ssf_from_file(filename, time)
-        print(f'Plotted {label} in {ti.time() - timestart}')
-        plt.yscale('log')
-        plt.xscale('log')
-        plt.plot(np.imag(time), np.real(spectral), label=f'{label}$~~N={points}$', color = next(colors))
+        for count in [1,None]:
+            spectral, points = get_ssf_from_file(filename, time, count=count)
+            print(f'Plotted {label} in {ti.time() - timestart}')
+            plt.yscale('log')
+            plt.xscale('log')
+            plt.plot(np.imag(time), np.real(spectral), label=f'{label}$~~N={points}$', color = next(colors))
     plt.grid()
     plt.legend(loc='lower right')
     plt.savefig('spectral.pdf')
