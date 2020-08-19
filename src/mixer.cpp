@@ -94,8 +94,14 @@ int main(int argc, char* argv[]) {
         auto num_attributes = group.getNumObjs();
 
         // Load matrices
+        std::vector<std::string> dataset_names(num_attributes);
         for(unsigned int k = 0; k < num_attributes; ++k) {
-            hamiltonian_set.push_back(util::load_block_cyclic_matrix_hdf5(&group, group.getObjnameByIdx(k),
+            dataset_names[k] = group.getObjnameByIdx(k);
+        }
+        std::sort(dataset_names.begin(), dataset_names.end());
+        
+        for(const auto& name : dataset_names) {
+            hamiltonian_set.push_back(util::load_block_cyclic_matrix_hdf5(&group, name,
                 mpi.size(), mpi.rank(), std::make_pair<>(64UL, 64UL)));
         }
 
