@@ -29,6 +29,10 @@ fi
 %labels
 
 %post
+mkdir -p /usr/share/modulefiles
+source /usr/share/Modules/init/bash
+module load mpi
+
 cd /src
 
 mkdir build
@@ -42,6 +46,7 @@ MAGMADIR=/usr/local/magma
 
 ${PREFIX} ${CMAKE} .. -DCMAKE_BUILD_TYPE=Release -DEIGEN3_INCLUDE_DIR=/base/eigen3 -DMagma_ROOT=${MAGMADIR} \
     -DCUDA_TOOLKIT_ROOT_DIR=${CUDADIR} -DCMAKE_CUDA_COMPILER=${CUDADIR}/bin/nvcc \
+    -DELPA_INCLUDE_DIR=/usr/local/include/elpa_openmp-2020.05.001/ -DELPA_ROOT=/usr/local/ \
     -DTARGET_ARCH=${TARGET_ARCH} \
 #    -DDIAG_SINGLE_PRECISION=ON
 ${PREFIX} make VERBOSE=1 -j$(nproc)

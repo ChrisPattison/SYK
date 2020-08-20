@@ -12,6 +12,8 @@
 #include <cassert>
 #include <filesystem>
 
+#include <H5Cpp.h>
+
 namespace fs = std::filesystem;
 
 enum class HamType { syk, gue, goe, heis };
@@ -59,45 +61,36 @@ int main(int argc, char* argv[]) {
 
     // ===== Open output file =======
 
-    std::fstream output_file;
+    H5::H5File output_file;
     try {
-        output_file = std::fstream(outfile_path, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc | std::ios_base::ate);
-        output_file.put(0);
-        output_file.flush();
-        output_file.seekg(0, std::ios::beg);
-        if(output_file.fail()) { throw std::runtime_error("Unable to write to output file"); }
+        output_file = H5::H5File(outfile_path.c_str(), H5F_ACC_TRUNC);
     }catch(const std::exception& e) {
-        std::cerr << "Output file writability check failed: " << e.what() << std::endl;
+        std::cerr << "Open output file failed: " << e.what() << std::endl;
         return 1;
     }
 
-    // ====== Gen Data ======
+    auto ham_group = output_file.createGroup("hamiltonian");
 
-    std::vector<syk::MatrixType> matrices(num_hamiltonians);
+    // ====== Gen Data ======
 
     auto rng = std::mt19937_64(std::random_device()());
     util::warmup_rng(&rng);
 
-    switch(ham_type) {
-        case HamType::gue:  std::generate(matrices.begin(), matrices.end(), [&]() { return syk::RandomGUE(&rng, size); }); break;
-        case HamType::goe:  std::generate(matrices.begin(), matrices.end(), [&]() { return syk::RandomGOE(&rng, size); }); break;
-        case HamType::syk:  std::generate(matrices.begin(), matrices.end(), [&]() { return syk::syk_hamiltonian(&rng, size, 1.0); }); break;
-        case HamType::heis: std::generate(matrices.begin(), matrices.end(), [&]() { return syk::random_field_heisenberg(&rng, size, 0.5); }); break;
-    }
+    try {
+        for(int k = 0 ; k < num_hamiltonians; ++k) {
+            syk::MatrixType matrix;
+            switch(ham_type) {
+                case HamType::gue:  matrix = syk::RandomGUE(&rng, size); break;
+                case HamType::goe:  matrix = syk::RandomGOE(&rng, size); break;
+                case HamType::syk:  matrix = syk::syk_hamiltonian(&rng, size, 1.0); break;
+                case HamType::heis: matrix = syk::random_field_heisenberg(&rng, size, 0.5); break;
+            }
+            auto ham_name = std::string("ham_") + std::to_string(k);
+            util::dump_matrix_hdf5(matrix, &ham_group, ham_name);
+        }
 
-    // ====== Output Data =====
-
-    flatbuffers::FlatBufferBuilder builder(matrices.size() * matrices.front().size() * sizeof(syk::MatrixType::Scalar));
-    std::vector<flatbuffers::Offset<SYKSchema::Matrix>> matrix_offsets(matrices.size());
-
-    std::transform(matrices.begin(), matrices.end(), matrix_offsets.begin(), [&](const auto& mat) { return util::dump_matrix(mat, &builder); });
-    auto output = SYKSchema::CreateInput(builder, builder.CreateVector(matrix_offsets));
-    builder.Finish(output);
-
-    output_file.write(reinterpret_cast<char*>(builder.GetBufferPointer()), builder.GetSize());
-    if(output_file.fail()) {
-        std::cerr << "Failed to write output to disk" << std::endl;
-        return 1;
+    }catch(const std::exception& e) {
+        std::cerr << "Failed to generate or write hamiltonians: " << e.what() << std::endl;
     }
 
     return 0;

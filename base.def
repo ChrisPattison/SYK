@@ -19,6 +19,7 @@ export PYTHONPATH="${PYTHONPATH}:/base"
 
 %post
 dnf install -y dnf-plugins-core
+dnf config-manager --set-enabled PowerTools
 dnf install -y which
 dnf install -y gcc-c++ gcc-gfortran
 dnf install -y epel-release
@@ -28,6 +29,8 @@ dnf install -y make bzip2 autoconf automake libtool curl make unzip
 dnf install -y python3 python3-devel
 dnf install -y openssl openssl-devel
 dnf install -y boost boost-devel
+dnf install -y hdf5 hdf5-devel mpich mpich-devel environment-modules
+dnf install -y redhat-rpm-config
 
 # ========== CUDA Install ==========
 
@@ -37,9 +40,9 @@ export CUDADIR=/usr/local/cuda-10.2
 export PATH="${CUDADIR}/bin:$PATH"
 
 # ========= Source Builds =========
-mkdir /base
+mkdir -p /base
 pushd /base
-mkdir scratch
+mkdir -p scratch
 
 # ========== CMake =============
 
@@ -52,18 +55,51 @@ make -j$(nproc)
 make install
 popd
 
+# ======== Python Setup ========
+
+pushd scratch
+python3 -m venv /base/python
+source /base/python/bin/activate
+pip install matplotlib numpy scipy pandas flatbuffers
+
+# Numba 0.51.0 has installation issues
+git clone --depth 1 -b 0.50.1 git://github.com/numba/numba.git
+cd numba
+python setup.py install
+deactivate
+popd
+rm -r scratch/numba
+
 # ========== OpenBLAS ========
+
 
 pushd scratch
 wget https://github.com/xianyi/OpenBLAS/archive/v0.3.9.tar.gz
 tar -xzf v0.3.9.tar.gz
 cd OpenBLAS-0.3.9
 make -j$(nproc) \
-TARGET=${BLAS_TARGET_ARCH:-HASWELL} \
-INTERFACE64=1
+TARGET=${BLAS_TARGET_ARCH:-HASWELL}
 export OPENBLASDIR=/usr/local
 make install PREFIX=${OPENBLASDIR}
 popd
+rm -r scratch/OpenBLAS-0.3.9
+
+# ========== ScalaPACK =======
+
+source /usr/share/Modules/init/bash
+module load mpi
+
+pushd scratch
+wget http://www.netlib.org/scalapack/scalapack-2.1.0.tgz
+tar -xzf scalapack-2.1.0.tgz
+cd scalapack-2.1.0
+mkdir build
+cd build
+cmake ..
+make -j$(nproc)
+make install
+popd
+rm -r scratch/scalapack-2.1.0
 
 # ========== MAGMA =========
 
@@ -74,17 +110,26 @@ cd magma-2.5.3
 
 cp make.inc-examples/make.inc.openblas make.inc
 echo "
-CFLAGS    += -DMKL_ILP64
-CXXFLAGS  += -DMKL_ILP64
-FFLAGS    += -fdefault-integer-8
-F90FLAGS  += -fdefault-integer-8
-NVCCFLAGS += -DMKL_ILP64
 
 GPU_TARGET=Pascal Volta
 " >> make.inc
 
 make lib -j$(nproc)
 # make sparse-lib -j$(nproc)
+make install
+popd
+rm -r scratch/magma-2.5.3
+
+# ======= ELPA =========
+
+pushd scratch
+# TODO: Fix HTTPS
+wget --secure-protocol=TLSv1 https://elpa.mpcdf.mpg.de/html/Releases/2020.05.001/elpa-2020.05.001.tar.gz
+tar -xf elpa-2020.05.001.tar.gz
+cd elpa-2020.05.001
+CFLAGS="-O2 -mtune=haswell -march=haswell" FCFLAGS="-O2 -mtune=haswell -march=haswell" ./configure --enable-openmp --disable-avx512 --disable-generic --disable-sse --disable-avx --disable-sse-assembly
+make -j$(nproc)
+#make check
 make install
 popd
 
@@ -95,13 +140,6 @@ wget https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz
 tar -xzf eigen-3.3.7.tar.gz
 mv eigen-3.3.7 ../eigen3
 popd
-
-# ======== Python Setup ========
-
-python3 -m venv /base/python
-source /base/python/bin/activate
-pip install matplotlib numpy scipy pandas flatbuffers numba
-deactivate
 
 # ========= Flat Buffers =======
 
@@ -138,4 +176,5 @@ popd
 
 dnf clean all
 rm -rf /var/cache/yum
-rm -rf /base/scratch
+#rm -rf /base/scratch
+
