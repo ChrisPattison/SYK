@@ -139,15 +139,6 @@ target_include_directories(concat_ham PRIVATE ${EIGEN3_INCLUDE_DIR})
 target_include_directories(concat_ham PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(concat_ham PRIVATE ${HDF5_LIBRARIES})
 
-# ================= Concat Ham =================
-
-add_executable(concat_ham concat_ham.cpp)
-
-add_dependencies(concat_ham gen_flatbuff)
-target_include_directories(concat_ham PRIVATE ${FLATBUFFERS_INCLUDE_DIR})
-target_include_directories(concat_ham PRIVATE ${EIGEN3_INCLUDE_DIR})
-target_include_directories(concat_ham PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-
 # ================= Install ================
 
 install(TARGETS bench spectral mixer gen_ham)
