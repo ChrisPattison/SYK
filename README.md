@@ -1,5 +1,6 @@
 # SYK
 
+Research code for investigating the ``monoparametric'' ensemble for SYK and GUE ensembles
 ## Singularity .def file configuration
 
 ### GPUs: number of GPUs
